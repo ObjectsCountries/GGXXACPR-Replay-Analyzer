@@ -21,6 +21,13 @@ from tkinter import (
 from typing import Any
 
 folder: str = ""
+match system():
+    case "Windows":
+        folder = f"C:\\Users\\{getlogin()}\\Documents\\ARC SYSTEM WORKS\\GGXXAC\\Replays\\"
+    case "Darwin":  # Mac
+        folder = f"/Users/{getlogin()}/Documents/ARC SYSTEM WORKS/GGXXAC/Replays/"
+    case _:  # Linux, FreeBSD, etc.
+        folder = f"/home/{getlogin()}/Documents/ARC SYSTEM WORKS/GGXXAC/Replays/"
 bar_view: bool = False
 
 
@@ -97,13 +104,14 @@ def analyzeReplays(
     if system() == "Windows":
         slash = "\\"
     for filename in scandir(replay_folder_path):
-        replays.append(
-            ParseMetadata(
-                replay_folder_path + slash + filename.name,
-                character_array,
-                metadata_dictionary,
+        if filename.name[-4:] == ".ggr":
+            replays.append(
+                ParseMetadata(
+                    replay_folder_path + slash + filename.name,
+                    character_array,
+                    metadata_dictionary,
+                )
             )
-        )
     data: dict[str, list[tuple[str, float, int]]] = {}
     for char in character_array:
         data[char] = []
@@ -209,17 +217,18 @@ def jsonifyReplays(
     if system() == "Windows":
         slash = "\\"
     for filename in scandir(replay_folder_path):
-        data: dict[str, Any] = ParseMetadata(
-            replay_folder_path + slash + filename.name,
-            character_array,
-            metadata_dictionary,
-        )
-        if not path.exists(f"Output{slash}"):
-            mkdir("Output")
-        with open(
-            f"Output{slash}{filename.name[:-4]}.json", "w", encoding="utf-8"
-        ) as f:
-            dump(data, f, ensure_ascii=False, indent=4)
+        if filename.name[-4:] == ".ggr":
+            data: dict[str, Any] = ParseMetadata(
+                replay_folder_path + slash + filename.name,
+                character_array,
+                metadata_dictionary,
+            )
+            if not path.exists(f"Output{slash}"):
+                mkdir("Output")
+            with open(
+                f"Output{slash}{filename.name[:-4]}.json", "w", encoding="utf-8"
+            ) as f:
+                dump(data, f, ensure_ascii=False, indent=4)
 
 
 def selectFolder() -> None:
@@ -227,18 +236,9 @@ def selectFolder() -> None:
     Selects a folder.
     """
     global folder
-    default_path: str = ""
-    match system():
-        case "Windows":
-            default_path = f"C:\\Users\\{getlogin()}\\Documents\\GGXXAC\\Replays\\"
-        case "Darwin":  # Mac
-            default_path = f"/Users/{getlogin()}/Documents/GGXXAC/Replays/"
-        case _:  # Linux, FreeBSD, etc.
-            default_path = f"/home/{getlogin()}/Documents/GGXXAC/Replays/"
-    folder = default_path
     folder = filedialog.askdirectory(
         title="Select the folder with the replays",
-        initialdir=default_path,
+        initialdir=folder,
         mustexist=True,
     )
 
