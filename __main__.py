@@ -30,10 +30,9 @@ def analyzeCharacter(
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
-    global bar_view
     ax.clear()
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Spread for {character}")
+    _ = ax.set_title(f"Matchup Spread for {character}", fontsize=20)
     _ = ax.set_xlabel("Win Rate")
     _ = ax.set_ylabel("Number of Matches")
     characters: list[str] = []
@@ -54,13 +53,15 @@ def analyzeCharacter(
     canvas.draw()
 
 
+# TODO Add feature to sort bars
+# TODO Add colors for each character
+# TODO Add bar graph for number of matches played
 def barGraph(
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
-    global bar_view
     characters: list[str] = []
     winrates: list[float] = []
     gameAmounts: list[int] = []
@@ -72,10 +73,11 @@ def barGraph(
     ax.clear()
     bars = ax.barh(range(len(characters)), winrates, tick_label=characters)
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Spread for {character}")
+    _ = ax.set_title(f"Matchup Spread for {character}", fontsize=20)
     _ = ax.set_ylabel("Character")
     _ = ax.set_xlabel("Win Rate")
-    _ = ax.bar_label(bars, fmt=lambda x:f"{x:.1f}:{(10-x):.1f}", padding=2)
+    _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
+    ax.invert_yaxis()
     canvas.draw()
 
 
@@ -170,16 +172,21 @@ def analyzeReplays(
         command=lambda x: route(x, data, ax, canvas, False),
     )
     dropdown.grid(row=0, column=0)
-    switchButton: Button = Button(analysis, text="Switch View", command=lambda: route(character.get(), data, ax, canvas, True))
+    switchButton: Button = Button(
+        analysis,
+        text="Switch View",
+        command=lambda: route(character.get(), data, ax, canvas, True),
+    )
     switchButton.grid(row=2, column=0)
-    analysis.protocol('WM_DELETE_WINDOW', analysis.destroy)
+    analysis.protocol("WM_DELETE_WINDOW", analysis.destroy)
+
 
 def route(
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
     ax: Axes,
     canvas: FigureCanvasTkAgg,
-    switch: bool
+    switch: bool,
 ) -> None:
     global bar_view
     if switch:
@@ -188,6 +195,7 @@ def route(
         barGraph(character, data, ax, canvas)
     else:
         analyzeCharacter(character, data, ax, canvas)
+
 
 def jsonifyReplays(
     replay_folder_path: str,
@@ -206,9 +214,11 @@ def jsonifyReplays(
             character_array,
             metadata_dictionary,
         )
-        if not path.exists("Output/"):
+        if not path.exists(f"Output{slash}"):
             mkdir("Output")
-        with open(f"Output/{filename.name[:-4]}.json", "w", encoding="utf-8") as f:
+        with open(
+            f"Output{slash}{filename.name[:-4]}.json", "w", encoding="utf-8"
+        ) as f:
             dump(data, f, ensure_ascii=False, indent=4)
 
 
@@ -478,7 +488,7 @@ def main() -> None:
         ),
     )
     analyzeButton.grid(row=2, column=2)
-    root.protocol('WM_DELETE_WINDOW', exit)
+    root.protocol("WM_DELETE_WINDOW", exit)
     root.mainloop()
 
 
