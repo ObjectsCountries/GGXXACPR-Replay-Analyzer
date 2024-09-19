@@ -33,7 +33,7 @@ def analyzeCharacter(
     global bar_view
     ax.clear()
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_label(f"Matchup Spread for {character}")
+    _ = ax.set_title(f"Matchup Spread for {character}")
     _ = ax.set_xlabel("Win Rate")
     _ = ax.set_ylabel("Number of Matches")
     characters: list[str] = []
@@ -50,7 +50,7 @@ def analyzeCharacter(
                 xytext=(5, 5),
                 textcoords="offset points",
             )
-    _ = ax.scatter(x=winrates, y=gameAmounts, s=6)
+    _ = ax.scatter(x=winrates, y=gameAmounts, s=7)
     canvas.draw()
 
 
@@ -70,12 +70,12 @@ def barGraph(
             winrates.append(char_tuple[1])
             gameAmounts.append(char_tuple[2])
     ax.clear()
-    _ = ax.bar(range(len(characters)), winrates, tick_label=characters)
-    _ = ax.set_ylim(0.0, 10.0)
-    _ = ax.set_label(f"Matchup Spread for {character}")
-    _ = ax.set_xlabel("Character")
-    _ = ax.set_ylabel("Win Rate")
-    _ = ax.tick_params(axis="x", labelrotation=90)
+    bars = ax.barh(range(len(characters)), winrates, tick_label=characters)
+    _ = ax.set_xlim(0.0, 10.0)
+    _ = ax.set_title(f"Matchup Spread for {character}")
+    _ = ax.set_ylabel("Character")
+    _ = ax.set_xlabel("Win Rate")
+    _ = ax.bar_label(bars, fmt=lambda x:f"{x:.1f}:{(10-x):.1f}", padding=2)
     canvas.draw()
 
 
@@ -155,7 +155,7 @@ def analyzeReplays(
     character.set("Sol")
     fig, ax = plt.subplots()
     ax.clear()
-    plt.subplots_adjust(bottom=.25)
+    fig.set_figheight(7)
     _ = ax.set_xlim(0.0, 10.0)
     _ = ax.set_label(f"Matchup Spread for {character}")
     _ = ax.set_xlabel("Win Rate")
