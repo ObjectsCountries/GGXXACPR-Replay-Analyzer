@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from enum import Enum
 from io import BufferedReader
 from json import dump
 from matplotlib.axes import Axes
@@ -21,16 +22,27 @@ from tkinter import (
 )
 from typing import Any
 
+
+class View(Enum):
+    SCATTER = (0,)
+    MATCHUPS = (1,)
+    MATCHUPS_SORTED = (2,)
+    AMOUNTS = (3,)
+    AMOUNTS_SORTED = (4,)
+
+
 folder: str = ""
 match system():
     case "Windows":
-        folder = f"C:\\Users\\{getlogin()}\\Documents\\ARC SYSTEM WORKS\\GGXXAC\\Replays\\"
+        folder = (
+            f"C:\\Users\\{getlogin()}\\Documents\\ARC SYSTEM WORKS\\GGXXAC\\Replays\\"
+        )
     case "Darwin":  # Mac
         folder = f"/Users/{getlogin()}/Documents/ARC SYSTEM WORKS/GGXXAC/Replays/"
     case _:  # Linux, FreeBSD, etc.
         folder = f"/home/{getlogin()}/Documents/ARC SYSTEM WORKS/GGXXAC/Replays/"
-bar_view: bool = False
-sort_view: bool = False
+is_sorted: bool = False
+view_type: View = View.SCATTER
 
 
 def analyzeCharacter(
@@ -62,8 +74,6 @@ def analyzeCharacter(
     canvas.draw()
 
 
-# TODO Add colors for each character
-# TODO Add bar graph for number of matches played
 def barGraph(
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
@@ -72,21 +82,24 @@ def barGraph(
 ) -> None:
     characters: list[str] = []
     winrates: list[float] = []
-    gameAmounts: list[int] = []
     for char_tuple in data[character]:
         if char_tuple[2] != 0:
             characters.append(char_tuple[0])
             winrates.append(char_tuple[1])
-            gameAmounts.append(char_tuple[2])
+    characters.append("Average")
+    winrates.append(sum(winrates) / len(winrates))
     ax.clear()
-    bars: BarContainer = ax.barh(range(len(characters)), winrates, tick_label=characters)
+    bars: BarContainer = ax.barh(
+        range(len(characters)), winrates, tick_label=characters
+    )
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Spread for {character}", fontsize=20)
+    _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=20)
     _ = ax.set_ylabel("Character")
     _ = ax.set_xlabel("Win Rate")
     _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
     ax.invert_yaxis()
     canvas.draw()
+
 
 def sortedBarGraph(
     character: str,
@@ -99,13 +112,66 @@ def sortedBarGraph(
         if char_tuple[2] != 0:
             pairs[char_tuple[0]] = char_tuple[1]
     pairs = dict(sorted(pairs.items(), key=lambda item: item[1], reverse=True))
+    pairs["Average"] = sum(pairs.values()) / len(pairs)
     ax.clear()
-    bars: BarContainer = ax.barh(range(len(pairs)), list(pairs.values()), tick_label=list(pairs.keys()))
+    bars: BarContainer = ax.barh(
+        range(len(pairs)), list(pairs.values()), tick_label=list(pairs.keys())
+    )
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Spread for {character}", fontsize=20)
+    _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=20)
     _ = ax.set_ylabel("Character")
     _ = ax.set_xlabel("Win Rate")
     _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
+    ax.invert_yaxis()
+    canvas.draw()
+
+
+def numberOfMatches(
+    character: str,
+    data: dict[str, list[tuple[str, float, int]]],
+    ax: Axes,
+    canvas: FigureCanvasTkAgg,
+) -> None:
+    characters: list[str] = []
+    gameAmounts: list[int] = []
+    for char_tuple in data[character]:
+        if char_tuple[2] != 0:
+            characters.append(char_tuple[0])
+            gameAmounts.append(char_tuple[2])
+    characters.append("Average")
+    gameAmounts.append(int(sum(gameAmounts) / len(gameAmounts)))
+    ax.clear()
+    bars: BarContainer = ax.barh(
+        range(len(characters)), gameAmounts, tick_label=characters
+    )
+    _ = ax.set_title(f"Number of Matches as {character}", fontsize=20)
+    _ = ax.set_ylabel("Character")
+    _ = ax.set_xlabel("Win Rate")
+    _ = ax.bar_label(bars, padding=2)
+    ax.invert_yaxis()
+    canvas.draw()
+
+
+def sortedNumberOfMatches(
+    character: str,
+    data: dict[str, list[tuple[str, float, int]]],
+    ax: Axes,
+    canvas: FigureCanvasTkAgg,
+) -> None:
+    pairs: dict[str, float] = {}
+    for char_tuple in data[character]:
+        if char_tuple[2] != 0:
+            pairs[char_tuple[0]] = char_tuple[2]
+    pairs = dict(sorted(pairs.items(), key=lambda item: item[1], reverse=True))
+    pairs["Average"] = int(sum(pairs.values()) / len(pairs))
+    ax.clear()
+    bars: BarContainer = ax.barh(
+        range(len(pairs)), list(pairs.values()), tick_label=list(pairs.keys())
+    )
+    _ = ax.set_title(f"Number of Matches as {character}", fontsize=20)
+    _ = ax.set_ylabel("Character")
+    _ = ax.set_xlabel("Win Rate")
+    _ = ax.bar_label(bars, padding=2)
     ax.invert_yaxis()
     canvas.draw()
 
@@ -120,7 +186,8 @@ def analyzeReplays(
     """
     Opens a new window to graph replays.
     """
-    global bar_view, sort_view
+
+    global view_type, is_sorted
     replays: list[dict[str, Any]] = []
     slash: str = "/"
     if system() == "Windows":
@@ -199,19 +266,19 @@ def analyzeReplays(
         analysis,
         character,
         *character_array,
-        command=lambda x: route(x, data, ax, canvas, False),
+        command=lambda x: route(x, data, ax, canvas, False, False),
     )
     dropdown.grid(row=0, column=0)
     switchButton: Button = Button(
         analysis,
         text="Switch View",
-        command=lambda: route(character.get(), data, ax, canvas, True),
+        command=lambda: route(character.get(), data, ax, canvas, True, False),
     )
     switchButton.grid(row=0, column=1)
     sortButton: Button = Button(
         analysis,
         text="Sort View",
-        command=lambda: route(character.get(), data, ax, canvas, True, True),
+        command=lambda: route(character.get(), data, ax, canvas, False, True),
     )
     sortButton.grid(row=0, column=2)
     analysis.protocol("WM_DELETE_WINDOW", analysis.destroy)
@@ -223,19 +290,56 @@ def route(
     ax: Axes,
     canvas: FigureCanvasTkAgg,
     switch: bool,
-    sort: bool=False,
+    sort: bool,
 ) -> None:
-    global bar_view, sort_view
+    global view_type, is_sorted
     if switch:
-        bar_view = not bar_view
-    if sort:
-        sort_view = not sort_view
-    if sort_view:
-        sortedBarGraph(character, data, ax, canvas)
-    elif bar_view:
-        barGraph(character, data, ax, canvas)
+        match view_type:
+            case View.SCATTER:
+                if is_sorted:
+                    view_type = View.MATCHUPS_SORTED
+                    sortedBarGraph(character, data, ax, canvas)
+                else:
+                    view_type = View.MATCHUPS
+                    barGraph(character, data, ax, canvas)
+            case View.MATCHUPS:
+                view_type = View.AMOUNTS
+                numberOfMatches(character, data, ax, canvas)
+            case View.MATCHUPS_SORTED:
+                view_type = View.AMOUNTS_SORTED
+                sortedNumberOfMatches(character, data, ax, canvas)
+            case View.AMOUNTS | View.AMOUNTS_SORTED:
+                view_type = View.SCATTER
+                analyzeCharacter(character, data, ax, canvas)
+    elif sort:
+        is_sorted = not is_sorted
+        match view_type:
+            case View.SCATTER:
+                return
+            case View.MATCHUPS:
+                view_type = View.MATCHUPS_SORTED
+                sortedBarGraph(character, data, ax, canvas)
+            case View.MATCHUPS_SORTED:
+                view_type = View.MATCHUPS
+                barGraph(character, data, ax, canvas)
+            case View.AMOUNTS:
+                view_type = View.AMOUNTS_SORTED
+                sortedNumberOfMatches(character, data, ax, canvas)
+            case View.AMOUNTS_SORTED:
+                view_type = View.AMOUNTS
+                numberOfMatches(character, data, ax, canvas)
     else:
-        analyzeCharacter(character, data, ax, canvas)
+        match view_type:
+            case View.SCATTER:
+                analyzeCharacter(character, data, ax, canvas)
+            case View.MATCHUPS:
+                barGraph(character, data, ax, canvas)
+            case View.MATCHUPS_SORTED:
+                sortedBarGraph(character, data, ax, canvas)
+            case View.AMOUNTS:
+                numberOfMatches(character, data, ax, canvas)
+            case View.AMOUNTS_SORTED:
+                sortedNumberOfMatches(character, data, ax, canvas)
 
 
 def jsonifyReplays(
