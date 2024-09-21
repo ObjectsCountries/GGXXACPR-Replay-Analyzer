@@ -86,8 +86,9 @@ def barGraph(
         if char_tuple[2] != 0:
             characters.append(char_tuple[0])
             winrates.append(char_tuple[1])
-    characters.append("Average")
-    winrates.append(sum(winrates) / len(winrates))
+    if len(winrates) != 0:
+        characters.append("Average")
+        winrates.append(sum(winrates) / len(winrates))
     ax.clear()
     bars: BarContainer = ax.barh(
         range(len(characters)), winrates, tick_label=characters
@@ -112,7 +113,8 @@ def sortedBarGraph(
         if char_tuple[2] != 0:
             pairs[char_tuple[0]] = char_tuple[1]
     pairs = dict(sorted(pairs.items(), key=lambda item: item[1], reverse=True))
-    pairs["Average"] = sum(pairs.values()) / len(pairs)
+    if len(pairs) != 0:
+        pairs["Average"] = sum(pairs.values()) / len(pairs)
     ax.clear()
     bars: BarContainer = ax.barh(
         range(len(pairs)), list(pairs.values()), tick_label=list(pairs.keys())
@@ -138,8 +140,9 @@ def numberOfMatches(
         if char_tuple[2] != 0:
             characters.append(char_tuple[0])
             gameAmounts.append(char_tuple[2])
-    characters.append("Average")
-    gameAmounts.append(int(sum(gameAmounts) / len(gameAmounts)))
+    if len(gameAmounts) != 0:
+        characters.append("Average")
+        gameAmounts.append(int(sum(gameAmounts) / len(gameAmounts)))
     ax.clear()
     bars: BarContainer = ax.barh(
         range(len(characters)), gameAmounts, tick_label=characters
@@ -163,7 +166,8 @@ def sortedNumberOfMatches(
         if char_tuple[2] != 0:
             pairs[char_tuple[0]] = char_tuple[2]
     pairs = dict(sorted(pairs.items(), key=lambda item: item[1], reverse=True))
-    pairs["Average"] = int(sum(pairs.values()) / len(pairs))
+    if len(pairs) != 0:
+        pairs["Average"] = int(sum(pairs.values()) / len(pairs))
     ax.clear()
     bars: BarContainer = ax.barh(
         range(len(pairs)), list(pairs.values()), tick_label=list(pairs.keys())
