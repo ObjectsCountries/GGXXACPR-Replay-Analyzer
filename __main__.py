@@ -3,6 +3,7 @@
 from io import BufferedReader
 from json import dump
 from matplotlib.axes import Axes
+from matplotlib.container import BarContainer
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from os import getlogin, mkdir, path, scandir
@@ -29,6 +30,7 @@ match system():
     case _:  # Linux, FreeBSD, etc.
         folder = f"/home/{getlogin()}/Documents/ARC SYSTEM WORKS/GGXXAC/Replays/"
 bar_view: bool = False
+sort_view: bool = False
 
 
 def analyzeCharacter(
@@ -60,7 +62,6 @@ def analyzeCharacter(
     canvas.draw()
 
 
-# TODO Add feature to sort bars
 # TODO Add colors for each character
 # TODO Add bar graph for number of matches played
 def barGraph(
@@ -78,7 +79,28 @@ def barGraph(
             winrates.append(char_tuple[1])
             gameAmounts.append(char_tuple[2])
     ax.clear()
-    bars = ax.barh(range(len(characters)), winrates, tick_label=characters)
+    bars: BarContainer = ax.barh(range(len(characters)), winrates, tick_label=characters)
+    _ = ax.set_xlim(0.0, 10.0)
+    _ = ax.set_title(f"Matchup Spread for {character}", fontsize=20)
+    _ = ax.set_ylabel("Character")
+    _ = ax.set_xlabel("Win Rate")
+    _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
+    ax.invert_yaxis()
+    canvas.draw()
+
+def sortedBarGraph(
+    character: str,
+    data: dict[str, list[tuple[str, float, int]]],
+    ax: Axes,
+    canvas: FigureCanvasTkAgg,
+) -> None:
+    pairs: dict[str, float] = {}
+    for char_tuple in data[character]:
+        if char_tuple[2] != 0:
+            pairs[char_tuple[0]] = char_tuple[1]
+    pairs = dict(sorted(pairs.items(), key=lambda item: item[1], reverse=True))
+    ax.clear()
+    bars: BarContainer = ax.barh(range(len(pairs)), list(pairs.values()), tick_label=list(pairs.keys()))
     _ = ax.set_xlim(0.0, 10.0)
     _ = ax.set_title(f"Matchup Spread for {character}", fontsize=20)
     _ = ax.set_ylabel("Character")
@@ -98,7 +120,7 @@ def analyzeReplays(
     """
     Opens a new window to graph replays.
     """
-    global bar_view
+    global bar_view, sort_view
     replays: list[dict[str, Any]] = []
     slash: str = "/"
     if system() == "Windows":
@@ -171,7 +193,7 @@ def analyzeReplays(
     _ = ax.set_xlabel("Win Rate")
     _ = ax.set_ylabel("Number of Matches")
     canvas: FigureCanvasTkAgg = FigureCanvasTkAgg(fig, master=analysis)
-    canvas.get_tk_widget().grid(row=1, column=0)
+    canvas.get_tk_widget().grid(row=1, column=0, columnspan=3)
     analyzeCharacter("Sol", data, ax, canvas)
     dropdown: OptionMenu = OptionMenu(
         analysis,
@@ -185,7 +207,13 @@ def analyzeReplays(
         text="Switch View",
         command=lambda: route(character.get(), data, ax, canvas, True),
     )
-    switchButton.grid(row=2, column=0)
+    switchButton.grid(row=0, column=1)
+    sortButton: Button = Button(
+        analysis,
+        text="Sort View",
+        command=lambda: route(character.get(), data, ax, canvas, True, True),
+    )
+    sortButton.grid(row=0, column=2)
     analysis.protocol("WM_DELETE_WINDOW", analysis.destroy)
 
 
@@ -195,11 +223,16 @@ def route(
     ax: Axes,
     canvas: FigureCanvasTkAgg,
     switch: bool,
+    sort: bool=False,
 ) -> None:
-    global bar_view
+    global bar_view, sort_view
     if switch:
         bar_view = not bar_view
-    if bar_view:
+    if sort:
+        sort_view = not sort_view
+    if sort_view:
+        sortedBarGraph(character, data, ax, canvas)
+    elif bar_view:
         barGraph(character, data, ax, canvas)
     else:
         analyzeCharacter(character, data, ax, canvas)
