@@ -354,9 +354,6 @@ def analyzeReplays(
                     metadata_dictionary,
                 )
             )
-    data: dict[str, list[tuple[str, float, int]]] = filterRanks(
-        replays, character_array, name
-    )
     analysis: Toplevel = Toplevel(root)
     character: StringVar = StringVar()
     character.set("Sol")
@@ -391,32 +388,64 @@ def analyzeReplays(
     sliders.append(opponent_rank)
     _ = user_rank.on_changed(
         lambda x: updateUserRanks(
-            x, replays, character_array, name, character.get(), ax, canvas, int(opponent_rank.val[0]), int(opponent_rank.val[1])
+            x,
+            replays,
+            character_array,
+            name,
+            character.get(),
+            ax,
+            canvas,
+            int(opponent_rank.val[0]),
+            int(opponent_rank.val[1]),
         )
     )
     _ = opponent_rank.on_changed(
         lambda x: updateOpponentRanks(
-            x, replays, character_array, name, character.get(), ax, canvas, int(user_rank.val[0]), int(user_rank.val[1])
+            x,
+            replays,
+            character_array,
+            name,
+            character.get(),
+            ax,
+            canvas,
+            int(user_rank.val[0]),
+            int(user_rank.val[1]),
         )
     )
-    analyzeCharacter("Sol", data, ax, canvas)
+    analyzeCharacter("Sol", filterRanks(replays, character_array, name, int(user_rank.val[0]), int(user_rank.val[1]), int(opponent_rank.val[0]), int(opponent_rank.val[1])), ax, canvas)
     dropdown: OptionMenu = OptionMenu(
         analysis,
         character,
         *character_array,
-        command=lambda x: route(x, data, ax, canvas, False, False),
+        command=lambda x: route(
+            x, filterRanks(replays, character_array, name, int(user_rank.val[0]), int(user_rank.val[1]), int(opponent_rank.val[0]), int(opponent_rank.val[1])), ax, canvas, False, False
+        ),
     )
     dropdown.grid(row=0, column=0)
     switchButton: Button = Button(
         analysis,
         text="Switch View",
-        command=lambda: route(character.get(), data, ax, canvas, True, False),
+        command=lambda: route(
+            character.get(),
+            filterRanks(replays, character_array, name, int(user_rank.val[0]), int(user_rank.val[1]), int(opponent_rank.val[0]), int(opponent_rank.val[1])),
+            ax,
+            canvas,
+            True,
+            False,
+        ),
     )
     switchButton.grid(row=0, column=1)
     sortButton: Button = Button(
         analysis,
         text="Sort View",
-        command=lambda: route(character.get(), data, ax, canvas, False, True),
+        command=lambda: route(
+            character.get(),
+            filterRanks(replays, character_array, name, int(user_rank.val[0]), int(user_rank.val[1]), int(opponent_rank.val[0]), int(opponent_rank.val[1])),
+            ax,
+            canvas,
+            False,
+            True,
+        ),
     )
     sortButton.grid(row=0, column=2)
     analysis.protocol("WM_DELETE_WINDOW", analysis.destroy)
