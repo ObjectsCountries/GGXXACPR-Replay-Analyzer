@@ -1,12 +1,16 @@
-# Using OrganizeReplaysMetaData.py
+# CLI Scripts
 
-## Python
+Credit goes to @joefish. on Discord for these scripts.
+
+## Using OrganizeReplaysMetaData.py
+
+### Python
 
 You’ll need to have python installed to run a python script, you can find various versions from the following link. https://www.python.org/downloads/
 
 I believe I’m personally using 3.9, but any version 3.7 or newer should work fine.
 
-## Running the Script
+### Running the Script
 
 Download the script and place it in a folder, I personally placed it in my replays folder. If your .py files are set to launch with python, you should be able to double click on the script to run it.
 
@@ -47,7 +51,7 @@ running first time set up, enter in your steam username: Joefish
 Organization Complete!
 ```
 
-## replayOrganizerConfig.ini
+### replayOrganizerConfig.ini
 
 This file is used to associate player’s steam id with a nickname so that it can sort all matches with that player into the same folder regardless of whether or not they change their username. You can also manually change this nickname within the config file if you want to, it tends to grab the oldest name in your replays unfortunately. Just open the config file in a text editor, and search for the nickname you want to choose.
 
@@ -68,7 +72,7 @@ Organization Complete!
 
 After using this reformat option, you can run the script with no additional parameters to organize all the replays again with the new nicknames. Additionally, I wanted to mention that you can give several individuals the same nickname if you feel like that third layer of organization has too many folders.
 
-## Editing the Script
+### Editing the Script
 
 Part of what’s nice about this being a python script is that it’s relatively easy to modify to suit your individual needs if you have the know-how. I figured I’d take a brief rundown of various parts of the script, and general tips for modifying the script.
 
@@ -83,7 +87,7 @@ metadata_dictionary = {
 
 # (1-25, SO KY MA MI AX PO CH ED BA FA TE JA AN JO VE DI SL IN ZA BR RO AB OS KL JU)
 character_array = ['Sol', 'Ky', 'May', 'Millia', 'Axl', 'Potemkin', 'Chipp', 'Eddie', 'Baiken', 'Faust', 'Testament', 'Jam', 'Anji', 'Johnny', 'Venom', 'Dizzy',
- 				   'Slayer', 'I-No', 'Zappa', 'Bridget', 'Robo-Ky', 'Aba', 'Order Sol', 'Kliff', 'Justice']
+                   'Slayer', 'I-No', 'Zappa', 'Bridget', 'Robo-Ky', 'Aba', 'Order Sol', 'Kliff', 'Justice']
 ```
 
 The metadata dictionary contains all metadata labels coupled with their file offset and num type. The character array is used to translate the p1/p2 char data from an integer into a character’s name. The order of the character array matches the order found within the metadata, but is indexed at 0-24 while the metadata is 1-25.
@@ -95,35 +99,35 @@ I created `PartialParseMetaData()` because I didn’t need all of it, and it sav
 ```py
 replay_files = os.listdir(file_path) #get a list of replay files
 for file in replay_files:
-	if 'ggr' in file.lower(): #ensure its a replay file
-		metaData = PartialParseMetadata(file_path+"\\"+file)
-		#determine if the user was p1/p2, or a spectator.------------------------------------------------------------------------
-		player, opponent = DeterminePlayerSide(metaData)
+    if 'ggr' in file.lower(): #ensure its a replay file
+        metaData = PartialParseMetadata(file_path+"\\"+file)
+        #determine if the user was p1/p2, or a spectator.------------------------------------------------------------------------
+        player, opponent = DeterminePlayerSide(metaData)
 
-		if player == '': #if it was a spectated match, move it into spectated matches.-------------------------------------------
-			spectate_path = file_path+"\\Spectated Matches"
-			CreatePath(spectate_path)
-			MoveFile(spectate_path,file)
-		else:
-			#determine if the opponent is in the config_dictionary, add them if they aren't--------------------------------------
-			if not CheckConfDict(config_dictionary,str(metaData[opponent+' steam id'])):
-				opName = metaData[opponent+' name']
-				invalid = '<>:"/\\|?*. '
-				for char in invalid: #need to remove illegal characters for folder names.
-					opName = opName.replace(char, '')
-				if opName == "":
-					opName = 'blank'
-				config_dictionary[str(metaData[opponent+' steam id'])] = opName
+        if player == '': #if it was a spectated match, move it into spectated matches.-------------------------------------------
+            spectate_path = file_path+"\\Spectated Matches"
+            CreatePath(spectate_path)
+            MoveFile(spectate_path,file)
+        else:
+            #determine if the opponent is in the config_dictionary, add them if they aren't--------------------------------------
+            if not CheckConfDict(config_dictionary,str(metaData[opponent+' steam id'])):
+                opName = metaData[opponent+' name']
+                invalid = '<>:"/\\|?*. '
+                for char in invalid: #need to remove illegal characters for folder names.
+                    opName = opName.replace(char, '')
+                if opName == "":
+                    opName = 'blank'
+                config_dictionary[str(metaData[opponent+' steam id'])] = opName
 
-			#organization--------------------------------------------------------------------------------------------------------
-			temp_path = file_path+"\\"+"As "+metaData[player+' char']+'\\'+"Against "+metaData[opponent+' char']+'\\'+"Against "+config_dictionary[str(metaData[opponent+' steam id'])]
-			CreatePath(temp_path)
-			MoveFile(temp_path,file)
+            #organization--------------------------------------------------------------------------------------------------------
+            temp_path = file_path+"\\"+"As "+metaData[player+' char']+'\\'+"Against "+metaData[opponent+' char']+'\\'+"Against "+config_dictionary[str(metaData[opponent+' steam id'])]
+            CreatePath(temp_path)
+            MoveFile(temp_path,file)
 
-			#write config_dictionary to the config file--------------------------------------------------------------------------
-			with open('replayOrganizerConfig.ini', 'w', encoding="utf-8") as file:
-				for steamID in config_dictionary:
-					file.write(str(steamID)+"="+config_dictionary[steamID]+"\n")
+            #write config_dictionary to the config file--------------------------------------------------------------------------
+            with open('replayOrganizerConfig.ini', 'w', encoding="utf-8") as file:
+                for steamID in config_dictionary:
+                    file.write(str(steamID)+"="+config_dictionary[steamID]+"\n")
 ```
 
 This is probably the most relevant section to modify. `player` and `opponent` are assigned the string `"p1"` or `"p2"` based on which side the user was on, if it was a spectated match, both are assigned `""`. This essentially removes the need to check player side later, which would otherwise require an excessive amount of if statements and near identical code blocks. 
@@ -132,9 +136,9 @@ The `if not CheckConfDict` block will add users to the config file if they do no
 
 Finally, the gigantic `temp_path` line is what actually determines the folder structure that it’ll move files into, the `"\\"` characters indicate a folder layer, and the strings in-between them represent what those folders will be named.
 
-## Known Issues
+### Known Issues
 
-### File Path
+#### File Path
 
 ```py
 # Ensure this filepath is correct.
@@ -143,6 +147,36 @@ file_path = 'C:\\Users\\' + os.getlogin() + '\\Documents\\ARC SYSTEM WORKS\\GGXX
 
 If you’re getting file not found errors, you may need to adjust this file path within the script to correct it. This has occurred for users utilizing OneDrive as it’ll store your replays in there, something like + `\\OneDrive\\Documents`… might work in that situation, additionally, if your replays are stored on a different drive, you’ll need to edit that as well.
 
-### Permission Error
+#### Permission Error
 
 Unfortunately I’ve only seen this error once and I was unable to resolve it, if you encounter a permission error, please let me know and I’ll try to help you with it. This user in particular was having permission errors with OneDrive that created bizarre results with the legacy script where it wouldn’t even error out, but it wouldn’t reach various print statements either.
+
+## Using ReplayStats.py
+
+ReplayStats.py is a companion script to the OrganizeReplaysMetaData.py script.
+
+You'll need to run that organization first for this to work.
+Additionally, this script should be placed within the same folder directory as your organizer, and config file.
+
+After your replays are organized, you can run this script on the command line.
+It will print out your personal character matchup statistics.
+
+You can include a list of players as an optional parameter, and it will only aggregate information against those players.
+Alternatively, if you include a parameter after that list, it will exclude them instead.
+
+As always, if you have any questions or run into any problems with this, feel free to contact me.
+
+### Example Commands
+
+`(file directory)>ReplayStats.py`
+
+This will use all of your replays to display your matchup statistics.
+
+`(file directory)>ReplayStats.py player1,player2`
+
+This will only include replays against player1 or player2 to display your matchup stats against them.
+
+`(file directory)>ReplayStats.py player1,player2 exclude`
+
+This will exclude replays against player1 and player2 to display your matchup stats against everyone else.
+
