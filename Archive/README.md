@@ -6,7 +6,7 @@ Credit goes to @joefish. on Discord for these scripts.
 
 ### Python
 
-You’ll need to have python installed to run a python script, you can find various versions from the following link. https://www.python.org/downloads/
+You’ll need to have Python installed to run a Python script; you can find various versions from the following link: https://www.python.org/downloads/
 
 I believe I’m personally using 3.9, but any version 3.7 or newer should work fine.
 
@@ -14,34 +14,35 @@ I believe I’m personally using 3.9, but any version 3.7 or newer should work f
 
 Download the script and place it in a folder, I personally placed it in my replays folder. If your .py files are set to launch with python, you should be able to double click on the script to run it.
 
-Alternatively, you can run it on the command line. You’ll need to navigate the command prompt to the directory you placed the script in, the easiest way to accomplish this is to left click on the file path in file explorer, and type in `cmd`, then click enter as shown below.
+Alternatively, you can run it on the command line. You’ll need to navigate the command prompt to the directory you placed the script in, the easiest way to accomplish this is to left click on the file path in file explorer, and type in “cmd”, then click <kbd>Enter</kbd> as shown below.
 
 ![](file_explorer.png)
 
-This should open a command prompt that looks something like this. From there, you should be able to enter in the script name as displayed below. You can use the tab key to autofill in the name.
+This should open a command prompt that looks something like this. From there, you should be able to enter in the script name as displayed below. You can use the <kbd>Tab</kbd> key to autofill in the name.
 
 ```
 Microsoft Windows [Version 10.0.19043.1466]
 (c) Microsoft Corporation. All rights reserved.
+
 C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays>
 C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays>OrganizeReplaysMetaData.py
 ```
 
-After the script is running for the first time, you should see a dialogue box like this.
+After the script is running for the first time, you should see a dialogue box like this:
 
 ```
 Config file not found, creating config file.
 running first time set up, enter in your steam username:
 ```
 
-It’ll create a ‘replayOrganizerConfig.ini’ file in that same directory. It’s prompting you for your steam username so it can associate that with your steam id, so that it won’t have to prompt you for your username again, and won’t mess up organization if you change it.
+It’ll create a “replayOrganizerConfig.ini” file in that same directory. It’s prompting you for your Steam username so it can associate that with your Steam ID, so that it won’t have to prompt you for your username again, and won’t mess up organization if you change it.
 
 ```
 could not find username in replay files.
 please either enter in your SteamID manually here, or ensure you entered your username properly and try again.
 ```
 
-If this text pops up after entering your username, it wasn’t able to locate a match with the username you provided. Make sure you entered your username correctly, and that there are replay files with that username in your replay folder. Alternatively, you can manually enter your steam id when you see this prompt.
+If this text pops up after entering your username, it wasn’t able to locate a match with the username you provided. Make sure you entered your username correctly, and that there are replay files with that username in your replay folder. Alternatively, you can manually enter your Steam ID when you see this prompt.
 
 Assuming it can find your username, the script should run without issue at this point. It may take a while if you have thousands of replays to sort through, but you should be able to see progress in the replay folder itself. If you run into issues with the script at this point, refer to the ‘known issues’ section at the end of this document, or feel free to contact me directly.
 
@@ -53,7 +54,7 @@ Organization Complete!
 
 ### replayOrganizerConfig.ini
 
-This file is used to associate player’s steam id with a nickname so that it can sort all matches with that player into the same folder regardless of whether or not they change their username. You can also manually change this nickname within the config file if you want to, it tends to grab the oldest name in your replays unfortunately. Just open the config file in a text editor, and search for the nickname you want to choose.
+This file is used to associate the player’s Steam ID with a nickname so that it can sort all matches with that player into the same folder regardless of whether or not they change their username. You can also manually change this nickname within the config file if you want to, it tends to grab the oldest name in your replays unfortunately. Just open the config file in a text editor, and search for the nickname you want to choose.
 
 For example, I can replace `(steamid)=DragonslayerHonnou` with `(steamid)=Honnou`
 
@@ -74,7 +75,7 @@ After using this reformat option, you can run the script with no additional para
 
 ### Editing the Script
 
-Part of what’s nice about this being a python script is that it’s relatively easy to modify to suit your individual needs if you have the know-how. I figured I’d take a brief rundown of various parts of the script, and general tips for modifying the script.
+Part of what’s nice about this being a Python script is that it’s relatively easy to modify to suit your individual needs if you have the know-how. I figured I’d take a brief rundown of various parts of the script, and general tips for modifying the script.
 
 ```py
 #label:[file_offset,num_type]
@@ -156,12 +157,15 @@ Unfortunately I’ve only seen this error once and I was unable to resolve it, i
 ReplayStats.py is a companion script to the OrganizeReplaysMetaData.py script.
 
 You'll need to run that organization first for this to work.
+
 Additionally, this script should be placed within the same folder directory as your organizer, and config file.
 
 After your replays are organized, you can run this script on the command line.
+
 It will print out your personal character matchup statistics.
 
 You can include a list of players as an optional parameter, and it will only aggregate information against those players.
+
 Alternatively, if you include a parameter after that list, it will exclude them instead.
 
 As always, if you have any questions or run into any problems with this, feel free to contact me.
