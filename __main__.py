@@ -4,9 +4,10 @@ from enum import Enum
 from io import BufferedReader
 from json import dump
 from matplotlib.axes import Axes
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.container import BarContainer
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.widgets import RangeSlider
 from os import getlogin, mkdir, path, scandir
 from platform import system
 from tkinter import (
@@ -20,7 +21,49 @@ from tkinter import (
     Toplevel,
     filedialog,
 )
-from typing import Any
+from typing import Any, Callable
+
+
+ranks: list[str] = [
+    "Civilian",
+    "Cadet",
+    "Bodyguard",
+    "Enlistee",
+    "Low-ranking Soldier",
+    "High-ranking Soldier",
+    "Novice Squadsman",
+    "Squadsman",
+    "Senior Squadsman",
+    "Platoon Leader",
+    "Battalion Leader",
+    "Champion",
+    "Master",
+    "Holy Knight",
+    "Holy Knight Commander",
+    "Master Swordsman",
+    "Dragon Hunter",
+    "Titan",
+    "Hero",
+    "War God",
+    "Legend",
+]
+
+
+def updateRanks(
+    values: tuple[float, float],
+    replays: list[dict[str, Any]],
+    character_array: list[str],
+    name: str,
+    character: str,
+    ax: Axes,
+    canvas: FigureCanvasTkAgg,
+) -> None:
+    lower: int = int(values[0])
+    higher: int = int(values[1])
+    data: dict[str, list[tuple[str, float, int]]] = filterRanks(
+        replays, character_array, name, lower, higher
+    )
+    route(character, data, ax, canvas, False, False)
 
 
 class View(Enum):
@@ -180,37 +223,30 @@ def sortedNumberOfMatches(
     canvas.draw()
 
 
-def analyzeReplays(
-    replay_folder_path: str,
+def filterRanks(
+    replays: list[dict[str, Any]],
     character_array: list[str],
-    metadata_dictionary: dict[str, tuple[int, int]],
     name: str,
-    root: Tk,
-) -> None:
-    """
-    Opens a new window to graph replays.
-    """
-
-    global view_type, is_sorted
-    replays: list[dict[str, Any]] = []
-    slash: str = "/"
-    if system() == "Windows":
-        slash = "\\"
-    for filename in scandir(replay_folder_path):
-        if filename.name[-4:] == ".ggr":
-            replays.append(
-                ParseMetadata(
-                    replay_folder_path + slash + filename.name,
-                    character_array,
-                    metadata_dictionary,
-                )
-            )
+    lower_bound: int = 0,
+    higher_bound: int = 21,
+) -> dict[str, list[tuple[str, float, int]]]:
+    global ranks
     data: dict[str, list[tuple[str, float, int]]] = {}
     for char in character_array:
         data[char] = []
         for char2 in character_array:
             data[char].append((char2, 0, 0))
     for replay in replays:
+        if (
+            replay["p1_rank"] is not None
+            and replay["p2_rank"] is not None
+            and (
+                ranks.index(replay["p1_rank"]) not in range(lower_bound, higher_bound)
+                or ranks.index(replay["p2_rank"])
+                not in range(lower_bound, higher_bound)
+            )
+        ):
+            continue
         if replay["p1_name"] == name and replay["winner"] == 1:
             _, wins, games = data[replay["p1_char"]][
                 character_array.index(replay["p2_char"])
@@ -252,7 +288,37 @@ def analyzeReplays(
             char, wins, games = data[character_array[i]][j]
             if games != 0:
                 data[character_array[i]][j] = (char, 10 * wins / games, games)
+    return data
 
+
+def analyzeReplays(
+    replay_folder_path: str,
+    character_array: list[str],
+    metadata_dictionary: dict[str, tuple[int, int]],
+    name: str,
+    root: Tk,
+) -> None:
+    """
+    Opens a new window to graph replays.
+    """
+
+    global view_type, is_sorted
+    replays: list[dict[str, Any]] = []
+    slash: str = "/"
+    if system() == "Windows":
+        slash = "\\"
+    for filename in scandir(replay_folder_path):
+        if filename.name[-4:] == ".ggr":
+            replays.append(
+                ParseMetadata(
+                    replay_folder_path + slash + filename.name,
+                    character_array,
+                    metadata_dictionary,
+                )
+            )
+    data: dict[str, list[tuple[str, float, int]]] = filterRanks(
+        replays, character_array, name
+    )
     analysis: Toplevel = Toplevel(root)
     character: StringVar = StringVar()
     character.set("Sol")
@@ -265,6 +331,34 @@ def analyzeReplays(
     _ = ax.set_ylabel("Number of Matches")
     canvas: FigureCanvasTkAgg = FigureCanvasTkAgg(fig, master=analysis)
     canvas.get_tk_widget().grid(row=1, column=0, columnspan=3)
+    user_rank_axes: Axes = fig.add_axes([0.2, 0.96, 0.6, 0.03])
+    user_rank: RangeSlider = RangeSlider(
+        user_rank_axes,
+        "Your Rank",
+        0,
+        21,
+        valstep=1,
+        valinit=(0, 21),
+    )
+    opponent_rank_axes: Axes = fig.add_axes([0.2, 0.935, 0.6, 0.03])
+    opponent_rank: RangeSlider = RangeSlider(
+        opponent_rank_axes,
+        "Opponent's Rank",
+        0,
+        21,
+        valstep=1,
+        valinit=(0, 21),
+    )
+    _ = user_rank.on_changed(
+        lambda x: updateRanks(
+            x, replays, character_array, name, character.get(), ax, canvas
+        )
+    )
+    _ = opponent_rank.on_changed(
+        lambda x: updateRanks(
+            x, replays, character_array, name, character.get(), ax, canvas
+        )
+    )
     analyzeCharacter("Sol", data, ax, canvas)
     dropdown: OptionMenu = OptionMenu(
         analysis,
@@ -392,30 +486,7 @@ def ParseMetadata(
     """
     Parses the replay metadata into a readable format.
     """
-
-    ranks: list[str] = [
-        "Civilian",
-        "Cadet",
-        "Bodyguard",
-        "Enlistee",
-        "Low-ranking Soldier",
-        "High-ranking Soldier",
-        "Novice Squadsman",
-        "Squadsman",
-        "Senior Squadsman",
-        "Platoon Leader",
-        "Battalion Leader",
-        "Champion",
-        "Master",
-        "Holy Knight",
-        "Holy Knight Commander",
-        "Master Swordsman",
-        "Dragon Hunter",
-        "Titan",
-        "Hero",
-        "War God",
-        "Legend",
-    ]
+    global ranks
 
     parsedDict: dict[str, Any] = {
         "date": "",
