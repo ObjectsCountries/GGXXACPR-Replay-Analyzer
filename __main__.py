@@ -21,8 +21,9 @@ from tkinter import (
     Toplevel,
     filedialog,
 )
-from typing import Any, Callable
+from typing import Any
 
+sliders: list[RangeSlider] = []
 
 ranks: list[str] = [
     "Civilian",
@@ -49,7 +50,7 @@ ranks: list[str] = [
 ]
 
 
-def updateRanks(
+def updateUserRanks(
     values: tuple[float, float],
     replays: list[dict[str, Any]],
     character_array: list[str],
@@ -57,11 +58,32 @@ def updateRanks(
     character: str,
     ax: Axes,
     canvas: FigureCanvasTkAgg,
+    opponent_lower: int,
+    opponent_higher: int,
 ) -> None:
     lower: int = int(values[0])
     higher: int = int(values[1])
     data: dict[str, list[tuple[str, float, int]]] = filterRanks(
-        replays, character_array, name, lower, higher
+        replays, character_array, name, lower, higher, opponent_lower, opponent_higher
+    )
+    route(character, data, ax, canvas, False, False)
+
+
+def updateOpponentRanks(
+    values: tuple[float, float],
+    replays: list[dict[str, Any]],
+    character_array: list[str],
+    name: str,
+    character: str,
+    ax: Axes,
+    canvas: FigureCanvasTkAgg,
+    user_lower: int,
+    user_higher: int,
+) -> None:
+    lower: int = int(values[0])
+    higher: int = int(values[1])
+    data: dict[str, list[tuple[str, float, int]]] = filterRanks(
+        replays, character_array, name, user_lower, user_higher, lower, higher
     )
     route(character, data, ax, canvas, False, False)
 
@@ -228,7 +250,9 @@ def filterRanks(
     character_array: list[str],
     name: str,
     lower_bound: int = 0,
-    higher_bound: int = 21,
+    higher_bound: int = 20,
+    opponent_lower_bound: int = 0,
+    opponent_higher_bound: int = 20,
 ) -> dict[str, list[tuple[str, float, int]]]:
     global ranks
     data: dict[str, list[tuple[str, float, int]]] = {}
@@ -241,9 +265,24 @@ def filterRanks(
             replay["p1_rank"] is not None
             and replay["p2_rank"] is not None
             and (
-                ranks.index(replay["p1_rank"]) not in range(lower_bound, higher_bound)
-                or ranks.index(replay["p2_rank"])
-                not in range(lower_bound, higher_bound)
+                (
+                    replay["p1_name"] == name
+                    and (
+                        ranks.index(replay["p1_rank"])
+                        not in range(lower_bound, higher_bound)
+                        or ranks.index(replay["p2_rank"])
+                        not in range(opponent_lower_bound, opponent_higher_bound)
+                    )
+                )
+                or (
+                    replay["p2_name"] == name
+                    and (
+                        ranks.index(replay["p1_rank"])
+                        not in range(opponent_lower_bound, opponent_higher_bound)
+                        or ranks.index(replay["p2_rank"])
+                        not in range(lower_bound, higher_bound)
+                    )
+                )
             )
         ):
             continue
@@ -301,8 +340,7 @@ def analyzeReplays(
     """
     Opens a new window to graph replays.
     """
-
-    global view_type, is_sorted
+    global view_type, is_sorted, sliders
     replays: list[dict[str, Any]] = []
     slash: str = "/"
     if system() == "Windows":
@@ -336,27 +374,29 @@ def analyzeReplays(
         user_rank_axes,
         "Your Rank",
         0,
-        21,
+        20,
         valstep=1,
-        valinit=(0, 21),
+        valinit=(0, 20),
     )
+    sliders.append(user_rank)
     opponent_rank_axes: Axes = fig.add_axes([0.2, 0.935, 0.6, 0.03])
     opponent_rank: RangeSlider = RangeSlider(
         opponent_rank_axes,
         "Opponent's Rank",
         0,
-        21,
+        20,
         valstep=1,
-        valinit=(0, 21),
+        valinit=(0, 20),
     )
+    sliders.append(opponent_rank)
     _ = user_rank.on_changed(
-        lambda x: updateRanks(
-            x, replays, character_array, name, character.get(), ax, canvas
+        lambda x: updateUserRanks(
+            x, replays, character_array, name, character.get(), ax, canvas, int(opponent_rank.val[0]), int(opponent_rank.val[1])
         )
     )
     _ = opponent_rank.on_changed(
-        lambda x: updateRanks(
-            x, replays, character_array, name, character.get(), ax, canvas
+        lambda x: updateOpponentRanks(
+            x, replays, character_array, name, character.get(), ax, canvas, int(user_rank.val[0]), int(user_rank.val[1])
         )
     )
     analyzeCharacter("Sol", data, ax, canvas)
@@ -617,7 +657,7 @@ def main() -> None:
     """
     Main functionality.
     """
-    global folder
+    global folder, sliders
     metadata_dictionary: dict[str, tuple[int, int]] = {
         "year": (0x1A, 16),
         "month": (0x1C, 8),

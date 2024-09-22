@@ -6,7 +6,7 @@ import struct
 import fnmatch
 
 # Ensure this filepath is correct.
-file_path = 'C:\\Users\\' + os.getlogin() + '\\Documents\\ARC SYSTEM WORKS\\GGXXAC\\Replays'
+file_path = os.path.dirname(os.path.realpath(__file__))
 
 #label:[file_offset,num_type]
 metadata_dictionary = {
@@ -121,7 +121,7 @@ def FindUserSteamID(username):
     for file in replay_files:
         if 'ggr' in file.lower(): #ensure its a replay file
             
-            metaData = PartialParseMetadata(file_path+"\\"+file)
+            metaData = PartialParseMetadata(file_path+os.sep+file)
             if metaData['p1 name'] == username:
                 steamID = metaData['p1 steam id']
                 break;
@@ -200,12 +200,12 @@ for player in player_list:
 
 for char in character_array:#loop through the player side characters-------------------------------------------------------------
     try:
-        temp_path = file_path+'/As '+char
+        temp_path = file_path+os.sep+'As '+char
         os.chdir(temp_path)
         print("")
         for opchar in character_array:#loop through the opponent side characters-------------------------------------------------
             try:
-                os.chdir(temp_path+'/Against '+opchar)
+                os.chdir(temp_path+os.sep+'Against '+opchar)
                 total_matches = 0
                 wins = 0
 

@@ -4,8 +4,8 @@ import shutil
 import re
 import struct
 
-# Ensure this filepath is correct.
-file_path = 'C:\\Users\\' + os.getlogin() + '\\Documents\\ARC SYSTEM WORKS\\GGXXAC\\Replays'
+# Ensure this filepath is correct, default location is SteamLibrary/steamapps/compatdata/348550/pfx/drive_c/users/steamuser/Documents/ARC SYSTEM WORKS/GGXXAC/Replays/
+file_path = os.path.dirname(os.path.realpath(__file__))
 
 #label:[file_offset,num_type]
 metadata_dictionary = {
@@ -26,13 +26,13 @@ def CreatePath(file_path):
 
 #made this into a function to handle duplicate file cases.
 def MoveFile(temp_path,file):
-	if not (os.path.exists(temp_path+"\\"+file)):
-		shutil.move(file_path+"\\"+file,temp_path)
+	if not (os.path.exists(temp_path+os.sep+file)):
+		shutil.move(file_path+os.sep+file,temp_path)
 	else:
 		tempIncrement = 1
 		while(True):
-			if not (os.path.exists(temp_path+"\\("+str(tempIncrement)+")"+file)):
-				shutil.move(file_path+"\\"+file,temp_path+"\\("+str(tempIncrement)+")"+file)
+			if not (os.path.exists(temp_path+os.sep+"("+str(tempIncrement)+")"+file)):
+				shutil.move(file_path+os.sep+file,temp_path+os.sep+"("+str(tempIncrement)+")"+file)
 				break;
 			tempIncrement += 1
 
@@ -144,7 +144,7 @@ def FindUserSteamID(username):
 	for file in replay_files:
 		if 'ggr' in file.lower(): #ensure its a replay file
 			
-			metaData = PartialParseMetadata(file_path+"\\"+file)
+			metaData = PartialParseMetadata(file_path+os.sep+file)
 			if metaData['p1 name'] == username:
 				steamID = metaData['p1 steam id']
 				break;
@@ -219,12 +219,12 @@ else:
 	replay_files = os.listdir(file_path) #get a list of replay files
 	for file in replay_files:
 		if 'ggr' in file.lower(): #ensure its a replay file
-			metaData = PartialParseMetadata(file_path+"\\"+file)
+			metaData = PartialParseMetadata(file_path+os.sep+file)
 			#determine if the user was p1/p2, or a spectator.------------------------------------------------------------------------
 			player, opponent = DeterminePlayerSide(metaData)
 
 			if player == '': #if it was a spectated match, move it into spectated matches.-------------------------------------------
-				spectate_path = file_path+"\\Spectated Matches"
+				spectate_path = file_path+os.sep+"Spectated Matches"
 				CreatePath(spectate_path)
 				MoveFile(spectate_path,file)
 			else:
@@ -239,7 +239,7 @@ else:
 					config_dictionary[str(metaData[opponent+' steam id'])] = opName
 
 				#organization--------------------------------------------------------------------------------------------------------
-				temp_path = file_path+"\\"+"As "+metaData[player+' char']+'\\'+"Against "+metaData[opponent+' char']+'\\'+"Against "+config_dictionary[str(metaData[opponent+' steam id'])]
+				temp_path = file_path+os.sep+"As "+metaData[player+' char']+os.sep+"Against "+metaData[opponent+' char']+os.sep+"Against "+config_dictionary[str(metaData[opponent+' steam id'])]
 				CreatePath(temp_path)
 				MoveFile(temp_path,file)
 
