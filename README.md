@@ -4,6 +4,8 @@ This simple GUI app displays information gathered from *Guilty Gear XX Accent Co
 
 ## How To Use
 
+Matplotlib is required, download here: https://matplotlib.org/stable/install/index.html
+
 Simply enter your username, select the folder with the replays (the app should go to the correct one by default), and click either of the buttons at the bottom.
 
 Selecting a folder is not necessary unless your replays are not in the default folder (C:\\Users\\USERNAME\\Documents\\ARC SYSTEM WORKS\\GGXXAC\\Replays on Windows).
