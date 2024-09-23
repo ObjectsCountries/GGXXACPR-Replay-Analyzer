@@ -348,7 +348,7 @@ def analyzeReplays(
     for filename in scandir(replay_folder_path):
         if filename.name[-4:] == ".ggr":
             replays.append(
-                ParseMetadata(
+                PartialParseMetadata(
                     replay_folder_path + slash + filename.name,
                     character_array,
                     metadata_dictionary,
@@ -412,13 +412,39 @@ def analyzeReplays(
             int(user_rank.val[1]),
         )
     )
-    analyzeCharacter("Sol", filterRanks(replays, character_array, name, int(user_rank.val[0]), int(user_rank.val[1]), int(opponent_rank.val[0]), int(opponent_rank.val[1])), ax, canvas)
+    analyzeCharacter(
+        "Sol",
+        filterRanks(
+            replays,
+            character_array,
+            name,
+            int(user_rank.val[0]),
+            int(user_rank.val[1]),
+            int(opponent_rank.val[0]),
+            int(opponent_rank.val[1]),
+        ),
+        ax,
+        canvas,
+    )
     dropdown: OptionMenu = OptionMenu(
         analysis,
         character,
         *character_array,
         command=lambda x: route(
-            x, filterRanks(replays, character_array, name, int(user_rank.val[0]), int(user_rank.val[1]), int(opponent_rank.val[0]), int(opponent_rank.val[1])), ax, canvas, False, False
+            x,
+            filterRanks(
+                replays,
+                character_array,
+                name,
+                int(user_rank.val[0]),
+                int(user_rank.val[1]),
+                int(opponent_rank.val[0]),
+                int(opponent_rank.val[1]),
+            ),
+            ax,
+            canvas,
+            False,
+            False,
         ),
     )
     dropdown.grid(row=0, column=0)
@@ -427,7 +453,15 @@ def analyzeReplays(
         text="Switch View",
         command=lambda: route(
             character.get(),
-            filterRanks(replays, character_array, name, int(user_rank.val[0]), int(user_rank.val[1]), int(opponent_rank.val[0]), int(opponent_rank.val[1])),
+            filterRanks(
+                replays,
+                character_array,
+                name,
+                int(user_rank.val[0]),
+                int(user_rank.val[1]),
+                int(opponent_rank.val[0]),
+                int(opponent_rank.val[1]),
+            ),
             ax,
             canvas,
             True,
@@ -440,7 +474,15 @@ def analyzeReplays(
         text="Sort View",
         command=lambda: route(
             character.get(),
-            filterRanks(replays, character_array, name, int(user_rank.val[0]), int(user_rank.val[1]), int(opponent_rank.val[0]), int(opponent_rank.val[1])),
+            filterRanks(
+                replays,
+                character_array,
+                name,
+                int(user_rank.val[0]),
+                int(user_rank.val[1]),
+                int(opponent_rank.val[0]),
+                int(opponent_rank.val[1]),
+            ),
             ax,
             canvas,
             False,
@@ -547,6 +589,74 @@ def selectFolder() -> None:
     )
 
 
+def PartialParseMetadata(
+    replay_file_path: str,
+    character_array: list[str],
+    metadata_dictionary: dict[str, tuple[int, int]],
+) -> dict[str, Any]:
+    """
+    Parses only the important replay metadata.
+    """
+    global ranks
+
+    parsedDict: dict[str, Any] = {
+        "p1_name": "",
+        "p1_char": "",
+        "p1_rank": "",
+        "p2_name": "",
+        "p2_char": "",
+        "p2_rank": "",
+        "winner": None,
+    }
+    replay: BufferedReader = open(replay_file_path, "rb")
+    for label, data in metadata_dictionary.items():
+        _ = replay.seek(data[0], 0)
+        if data[1] == 256:
+            number: int = 0
+        else:
+            number = int.from_bytes((replay.read(int(data[1] / 8))), "little")
+        match label:
+            case "p1 rank":
+                if parsedDict["p2_name"] is None:  # check if the match was offline
+                    parsedDict["p1_rank"] = None
+                else:
+                    parsedDict["p1_rank"] = ranks[number]
+            case "p2 rank":
+                if parsedDict["p2_name"] is None:
+                    parsedDict["p2_rank"] = None
+                else:
+                    parsedDict["p2_rank"] = ranks[number]
+            case "winner side":
+                if number == 3:
+                    parsedDict["winner"] = None
+                else:
+                    parsedDict["winner"] = number
+            case "p1 name":
+                try:
+                    temp = replay.read(32).decode()
+                except UnicodeDecodeError:
+                    _ = replay.seek(-32, 1)
+                    temp = replay.read(32).decode("utf-16")
+                finally:
+                    parsedDict["p1_name"] = temp.replace("\x00", "", -1)
+            case "p2 name":
+                try:
+                    temp = replay.read(32).decode()
+                except UnicodeDecodeError:
+                    _ = replay.seek(-32, 1)
+                    temp = replay.read(32).decode("utf-16")
+                finally:
+                    parsedDict["p2_name"] = temp.replace("\x00", "", -1)
+            case "p1 char":
+                parsedDict["p1_char"] = character_array[number - 1]
+            case "p2 char":
+                parsedDict["p2_char"] = character_array[number - 1]
+            case _:
+                continue
+    replay.close()
+    return parsedDict
+
+
 def ParseMetadata(
     replay_file_path: str,
     character_array: list[str],
@@ -559,18 +669,22 @@ def ParseMetadata(
 
     parsedDict: dict[str, Any] = {
         "date": "",
-        "p1_steam_id": 0,
-        "p1_name": "",
-        "p1_char": "",
-        "p1_rounds": 0,
-        "p1_score": 0,
-        "p1_rank": "",
-        "p2_steam_id": 0,
-        "p2_name": "",
-        "p2_char": "",
-        "p2_rounds": 0,
-        "p2_score": 0,
-        "p2_rank": "",
+        "player_1": {
+            "steam_id": "",
+            "name": "",
+            "character": "",
+            "rounds": 0,
+            "score": 0,
+            "rank": "",
+        },
+        "player_2": {
+            "steam_id": "",
+            "name": "",
+            "character": "",
+            "rounds": 0,
+            "score": 0,
+            "rank": "",
+        },
         "ex_chars": False,
         "team": False,
         "accent_core": False,
@@ -578,8 +692,7 @@ def ParseMetadata(
         "disconnect": False,
         "desync": False,
         "ping": 0,
-        "duration_in_frames": 0,
-        "duration_in_seconds": 0.0,
+        "duration": 0.0,
         "winner": None,
     }
     replay: BufferedReader = open(replay_file_path, "rb")
@@ -598,7 +711,7 @@ def ParseMetadata(
             case "hour" | "minute":
                 date += f"{number:02}:"
             case "second":
-                date += f"{number:02}.000"
+                date += f"{number:02}"
             case "recording location timezone bias against GMT":
                 time_offset: int = int(int(number) / -60)
                 if time_offset == 0:
@@ -609,15 +722,19 @@ def ParseMetadata(
                     date += f"{(int(time_offset/60)):03}:{((-1*time_offset)%60):02}"
                 parsedDict["date"] = date
             case "p1 rank":
-                if parsedDict["p2_name"] is None:  # check if the match was offline
-                    parsedDict["p1_rank"] = None
+                if (
+                    parsedDict["player_2"]["name"] is None
+                ):  # check if the match was offline
+                    parsedDict["player_1"]["rank"] = None
                 else:
-                    parsedDict["p1_rank"] = ranks[number]
+                    parsedDict["player_1"]["rank"] = ranks[number]
             case "p2 rank":
-                if parsedDict["p2_name"] is None:
-                    parsedDict["p2_rank"] = None
+                if (
+                    parsedDict["player_2"]["name"] is None
+                ):  # same as above, both should be player 2
+                    parsedDict["player_2"]["rank"] = None
                 else:
-                    parsedDict["p2_rank"] = ranks[number]
+                    parsedDict["player_2"]["rank"] = ranks[number]
             case "ex chars?":
                 parsedDict["ex_chars"] = number == 1
             case "single or team":
@@ -627,28 +744,29 @@ def ParseMetadata(
             case "ping":
                 parsedDict["ping"] = number
             case "match duration in frames":
-                parsedDict["duration_in_frames"] = number
-                parsedDict["duration_in_seconds"] = number / 60
+                parsedDict["duration"] = number / 60
             case "p1 rounds":
-                parsedDict["p1_rounds"] = number
+                parsedDict["player_1"]["rounds"] = number
             case "p2 rounds":
-                parsedDict["p2_rounds"] = number
+                parsedDict["player_2"]["rounds"] = number
             case "p1 score":
-                parsedDict["p1_score"] = number
+                parsedDict["player_1"]["score"] = number
             case "p2 score":
-                parsedDict["p2_score"] = number
+                parsedDict["player_2"]["score"] = number
             case "winner side":
-                if number == 3:
-                    parsedDict["winner"] = None
+                if number == 1:
+                    parsedDict["winner"] = "player_1"
+                elif number == 2:
+                    parsedDict["winner"] = "player_2"
                 else:
-                    parsedDict["winner"] = number
+                    parsedDict["winner"] = None
             case "p1 steam id":
-                parsedDict["p1_steam_id"] = number
+                parsedDict["player_1"]["steam_id"] = str(number)
             case "p2 steam id":
                 if number == 0:
-                    parsedDict["p2_steam_id"] = None
+                    parsedDict["player_2"]["steam_id"] = None
                 else:
-                    parsedDict["p2_steam_id"] = number
+                    parsedDict["player_2"]["steam_id"] = str(number)
             case "p1 name":
                 try:
                     temp = replay.read(32).decode()
@@ -656,10 +774,10 @@ def ParseMetadata(
                     _ = replay.seek(-32, 1)
                     temp = replay.read(32).decode("utf-16")
                 finally:
-                    parsedDict["p1_name"] = temp.replace("\x00", "", -1)
+                    parsedDict["player_1"]["name"] = temp.replace("\x00", "", -1)
             case "p2 name":
-                if parsedDict["p2_steam_id"] is None:
-                    parsedDict["p2_name"] = None
+                if parsedDict["player_2"]["steam_id"] is None:
+                    parsedDict["player_2"]["name"] = None
                 else:
                     try:
                         temp = replay.read(32).decode()
@@ -667,15 +785,15 @@ def ParseMetadata(
                         _ = replay.seek(-32, 1)
                         temp = replay.read(32).decode("utf-16")
                     finally:
-                        parsedDict["p2_name"] = temp.replace("\x00", "", -1)
+                        parsedDict["player_2"]["name"] = temp.replace("\x00", "", -1)
             case "unfinished match, disconnect, desync bitmask":
                 parsedDict["unfinished"] = number % 2 == 1
                 parsedDict["disconnect"] = number in [2, 3, 6, 7]
                 parsedDict["desync"] = number >= 4
             case "p1 char":
-                parsedDict["p1_char"] = character_array[number - 1]
+                parsedDict["player_1"]["character"] = character_array[number - 1]
             case "p2 char":
-                parsedDict["p2_char"] = character_array[number - 1]
+                parsedDict["player_2"]["character"] = character_array[number - 1]
             case _:
                 raise ValueError
     replay.close()
