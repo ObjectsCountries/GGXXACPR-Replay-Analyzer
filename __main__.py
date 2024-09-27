@@ -8,7 +8,7 @@ from matplotlib.axes import Axes
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.container import BarContainer
 import matplotlib.pyplot as plt
-from matplotlib.widgets import RangeSlider
+from matplotlib.widgets import RadioButtons, RangeSlider
 from os import getlogin, mkdir, path
 from platform import system
 from tkinter import (
@@ -25,6 +25,8 @@ from tkinter import (
 from typing import Any
 
 sliders: list[RangeSlider] = []
+
+replay_type_selection: RadioButtons
 
 ranks: list[str] = [
     "Civilian",
@@ -79,40 +81,29 @@ colors: list[str] = [
 ]
 
 
-def update_user_ranks(
-    values: tuple[float, float],
+def update_replays(
+    _: str | None,
     replays: list[dict[str, Any]],
     character_array: list[str],
     name: str,
     character: str,
     ax: Axes,
     canvas: FigureCanvasTkAgg,
+    replay_type: str,
+    user_lower: int,
+    user_higher: int,
     opponent_lower: int,
     opponent_higher: int,
 ) -> None:
-    lower: int = int(values[0])
-    higher: int = int(values[1])
-    data: dict[str, list[tuple[str, float, int]]] = filter_ranks(
-        replays, character_array, name, lower, higher, opponent_lower, opponent_higher
-    )
-    determine_view(character, data, ax, canvas, False, False)
-
-
-def update_opponent_ranks(
-    values: tuple[float, float],
-    replays: list[dict[str, Any]],
-    character_array: list[str],
-    name: str,
-    character: str,
-    ax: Axes,
-    canvas: FigureCanvasTkAgg,
-    user_lower: int,
-    user_higher: int,
-) -> None:
-    lower: int = int(values[0])
-    higher: int = int(values[1])
-    data: dict[str, list[tuple[str, float, int]]] = filter_ranks(
-        replays, character_array, name, user_lower, user_higher, lower, higher
+    data: dict[str, list[tuple[str, float, int]]] = filter_replays(
+        replays,
+        character_array,
+        name,
+        replay_type,
+        user_lower,
+        user_higher,
+        opponent_lower,
+        opponent_higher,
     )
     determine_view(character, data, ax, canvas, False, False)
 
@@ -313,10 +304,11 @@ def no_of_matches_bar_graph_sorted(
     canvas.draw()
 
 
-def filter_ranks(
+def filter_replays(
     replays: list[dict[str, Any]],
     character_array: list[str],
     name: str,
+    replay_type: str,
     lower_bound: int = 0,
     higher_bound: int = 20,
     opponent_lower_bound: int = 0,
@@ -330,7 +322,46 @@ def filter_ranks(
             data[char].append((char2, 0, 0))
     for replay in replays:
         if (
-            replay["p1_rank"] is not None
+            replay_type == "Both Online and Offline" or replay_type == "Offline Only"
+        ) and replay["p2_name"] == "":
+            if replay["winner"] == 1:
+                _, wins, games = data[replay["p1_char"]][
+                    character_array.index(replay["p2_char"])
+                ]
+                data[replay["p1_char"]][character_array.index(replay["p2_char"])] = (
+                    replay["p2_char"],
+                    wins + 1,
+                    games + 1,
+                )
+                _, wins, games = data[replay["p2_char"]][
+                    character_array.index(replay["p1_char"])
+                ]
+                data[replay["p2_char"]][character_array.index(replay["p1_char"])] = (
+                    replay["p1_char"],
+                    wins,
+                    games + 1,
+                )
+            elif replay["winner"] == 2:
+                _, wins, games = data[replay["p2_char"]][
+                    character_array.index(replay["p1_char"])
+                ]
+                data[replay["p2_char"]][character_array.index(replay["p1_char"])] = (
+                    replay["p1_char"],
+                    wins + 1,
+                    games + 1,
+                )
+                _, wins, games = data[replay["p1_char"]][
+                    character_array.index(replay["p2_char"])
+                ]
+                data[replay["p1_char"]][character_array.index(replay["p2_char"])] = (
+                    replay["p2_char"],
+                    wins,
+                    games + 1,
+                )
+            continue
+        if (
+            (replay_type == "Both Online and Offline" or replay_type == "Online Only")
+            and replay["p1_rank"] is not None
             and replay["p2_rank"] is not None
             and (
                 (
@@ -354,42 +385,43 @@ def filter_ranks(
             )
         ):
             continue
-        if replay["p1_name"] == name and replay["winner"] == 1:
-            _, wins, games = data[replay["p1_char"]][
-                character_array.index(replay["p2_char"])
-            ]
-            data[replay["p1_char"]][character_array.index(replay["p2_char"])] = (
-                replay["p2_char"],
-                wins + 1,
-                games + 1,
-            )
-        elif replay["p1_name"] == name and replay["winner"] != 1:
-            _, wins, games = data[replay["p1_char"]][
-                character_array.index(replay["p2_char"])
-            ]
-            data[replay["p1_char"]][character_array.index(replay["p2_char"])] = (
-                replay["p2_char"],
-                wins,
-                games + 1,
-            )
-        elif replay["p2_name"] == name and replay["winner"] == 2:
-            _, wins, games = data[replay["p2_char"]][
-                character_array.index(replay["p1_char"])
-            ]
-            data[replay["p2_char"]][character_array.index(replay["p1_char"])] = (
-                replay["p1_char"],
-                wins + 1,
-                games + 1,
-            )
-        elif replay["p2_name"] == name and replay["winner"] != 2:
-            _, wins, games = data[replay["p2_char"]][
-                character_array.index(replay["p1_char"])
-            ]
-            data[replay["p2_char"]][character_array.index(replay["p1_char"])] = (
-                replay["p1_char"],
-                wins,
-                games + 1,
-            )
+        if replay_type == "Both Online and Offline" or replay_type == "Online Only":
+            if replay["p1_name"] == name and replay["winner"] == 1:
+                _, wins, games = data[replay["p1_char"]][
+                    character_array.index(replay["p2_char"])
+                ]
+                data[replay["p1_char"]][character_array.index(replay["p2_char"])] = (
+                    replay["p2_char"],
+                    wins + 1,
+                    games + 1,
+                )
+            elif replay["p1_name"] == name and replay["winner"] != 1:
+                _, wins, games = data[replay["p1_char"]][
+                    character_array.index(replay["p2_char"])
+                ]
+                data[replay["p1_char"]][character_array.index(replay["p2_char"])] = (
+                    replay["p2_char"],
+                    wins,
+                    games + 1,
+                )
+            elif replay["p2_name"] == name and replay["winner"] == 2:
+                _, wins, games = data[replay["p2_char"]][
+                    character_array.index(replay["p1_char"])
+                ]
+                data[replay["p2_char"]][character_array.index(replay["p1_char"])] = (
+                    replay["p1_char"],
+                    wins + 1,
+                    games + 1,
+                )
+            elif replay["p2_name"] == name and replay["winner"] != 2:
+                _, wins, games = data[replay["p2_char"]][
+                    character_array.index(replay["p1_char"])
+                ]
+                data[replay["p2_char"]][character_array.index(replay["p1_char"])] = (
+                    replay["p1_char"],
+                    wins,
+                    games + 1,
+                )
     for i in range(len(data)):
         for j in range(len(data[character_array[i]])):
             char, wins, games = data[character_array[i]][j]
@@ -408,7 +440,7 @@ def analyze_replays(
     """
     Opens a new window to graph replays.
     """
-    global view_type, is_sorted, sliders
+    global view_type, is_sorted, sliders, replay_type_selection
     replays: list[dict[str, Any]] = []
     slash: str = "/"
     if system() == "Windows":
@@ -434,8 +466,8 @@ def analyze_replays(
     character.set("Sol")
     fig, ax = plt.subplots()
     ax.clear()
-    fig.set_figwidth(8.5)
-    fig.set_figheight(7)
+    fig.set_figwidth(9)
+    fig.set_figheight(9)
     _ = ax.set_xlim(0.0, 10.0)
     _ = ax.set_label(f"Matchup Spread for {character}")
     _ = ax.set_xlabel("Win Rate")
@@ -462,38 +494,66 @@ def analyze_replays(
         valinit=(0, 20),
     )
     sliders.append(opponent_rank)
+    replay_type_selection_axes: Axes = fig.add_axes([0.03, 0.005, 0.3, 0.075])
+    replay_type_selection = RadioButtons(
+        replay_type_selection_axes,
+        ["Both Online and Offline", "Offline Only", "Online Only"],
+    )
     _ = user_rank.on_changed(
-        lambda x: update_user_ranks(
-            x,
+        lambda user: update_replays(
+            "",
             replays,
             character_array,
             name,
             character.get(),
             ax,
             canvas,
+            replay_type_selection.value_selected,
+            int(user[0]),
+            int(user[1]),
             int(opponent_rank.val[0]),
             int(opponent_rank.val[1]),
         )
     )
     _ = opponent_rank.on_changed(
-        lambda x: update_opponent_ranks(
-            x,
+        lambda opponent: update_replays(
+            "",
             replays,
             character_array,
             name,
             character.get(),
             ax,
             canvas,
+            replay_type_selection.value_selected,
             int(user_rank.val[0]),
             int(user_rank.val[1]),
+            int(opponent[0]),
+            int(opponent[1]),
+        )
+    )
+    _ = replay_type_selection.on_clicked(
+        lambda s: update_replays(
+            s,
+            replays,
+            character_array,
+            name,
+            character.get(),
+            ax,
+            canvas,
+            replay_type_selection.value_selected,
+            int(user_rank.val[0]),
+            int(user_rank.val[1]),
+            int(opponent_rank.val[0]),
+            int(opponent_rank.val[1]),
         )
     )
     scatter_plot(
         "Sol",
-        filter_ranks(
+        filter_replays(
             replays,
             character_array,
             name,
+            replay_type_selection.value_selected,
             int(user_rank.val[0]),
             int(user_rank.val[1]),
             int(opponent_rank.val[0]),
@@ -508,10 +568,11 @@ def analyze_replays(
         *character_array,
         command=lambda x: determine_view(
             x,
-            filter_ranks(
+            filter_replays(
                 replays,
                 character_array,
                 name,
+                replay_type_selection.value_selected,
                 int(user_rank.val[0]),
                 int(user_rank.val[1]),
                 int(opponent_rank.val[0]),
@@ -529,10 +590,11 @@ def analyze_replays(
         text="Switch View",
         command=lambda: determine_view(
             character.get(),
-            filter_ranks(
+            filter_replays(
                 replays,
                 character_array,
                 name,
+                replay_type_selection.value_selected,
                 int(user_rank.val[0]),
                 int(user_rank.val[1]),
                 int(opponent_rank.val[0]),
@@ -550,10 +612,11 @@ def analyze_replays(
         text="Sort View",
         command=lambda: determine_view(
             character.get(),
-            filter_ranks(
+            filter_replays(
                 replays,
                 character_array,
                 name,
+                replay_type_selection.value_selected,
                 int(user_rank.val[0]),
                 int(user_rank.val[1]),
                 int(opponent_rank.val[0]),
@@ -692,10 +755,10 @@ def partial_parse_metadata(
     parsedDict: dict[str, Any] = {
         "p1_name": "",
         "p1_char": "",
-        "p1_rank": "",
+        "p1_rank": None,
         "p2_name": "",
         "p2_char": "",
-        "p2_rank": "",
+        "p2_rank": None,
         "winner": None,
     }
     replay: BufferedReader = open(replay_file_path, "rb")
@@ -764,25 +827,25 @@ def parse_metadata(
     global ranks, corrupt_replays
     parsedDict: dict[str, Any] = {
         "date": "",
-        "player_1": {
-            "steam_id": "",
+        "player1": {
+            "steamID": "",
             "name": "",
             "character": "",
             "rounds": 0,
             "score": 0,
             "rank": "",
         },
-        "player_2": {
-            "steam_id": "",
+        "player2": {
+            "steamID": "",
             "name": "",
             "character": "",
             "rounds": 0,
             "score": 0,
             "rank": "",
         },
-        "ex_chars": False,
+        "EXchars": False,
         "team": False,
-        "accent_core": False,
+        "accentCore": False,
         "unfinished": False,
         "disconnect": False,
         "desync": False,
@@ -824,36 +887,36 @@ def parse_metadata(
                 parsedDict["date"] = date
             case "p1 rank":
                 if (
-                    parsedDict["player_2"]["name"] is None
+                    parsedDict["player2"]["name"] is None
                 ):  # check if the match was offline
-                    parsedDict["player_1"]["rank"] = None
+                    parsedDict["player1"]["rank"] = None
                 else:
-                    parsedDict["player_1"]["rank"] = ranks[number]
+                    parsedDict["player1"]["rank"] = ranks[number]
             case "p2 rank":
                 if (
-                    parsedDict["player_2"]["name"] is None
+                    parsedDict["player2"]["name"] is None
                 ):  # same as above, both should be player 2
-                    parsedDict["player_2"]["rank"] = None
+                    parsedDict["player2"]["rank"] = None
                 else:
-                    parsedDict["player_2"]["rank"] = ranks[number]
+                    parsedDict["player2"]["rank"] = ranks[number]
             case "ex chars?":
-                parsedDict["ex_chars"] = number == 1
+                parsedDict["EXchars"] = number == 1
             case "single or team":
                 parsedDict["team"] = number == 2
             case "+R or AC":
-                parsedDict["accent_core"] = number == 1
+                parsedDict["accentCore"] = number == 1
             case "ping":
                 parsedDict["ping"] = number
             case "match duration in frames":
                 parsedDict["duration"] = number / 60
             case "p1 rounds":
-                parsedDict["player_1"]["rounds"] = number
+                parsedDict["player1"]["rounds"] = number
             case "p2 rounds":
-                parsedDict["player_2"]["rounds"] = number
+                parsedDict["player2"]["rounds"] = number
             case "p1 score":
-                parsedDict["player_1"]["score"] = number
+                parsedDict["player1"]["score"] = number
             case "p2 score":
-                parsedDict["player_2"]["score"] = number
+                parsedDict["player2"]["score"] = number
             case "winner side":
                 if number == 1:
                     parsedDict["winner"] = "player_1"
@@ -862,12 +925,12 @@ def parse_metadata(
                 else:
                     parsedDict["winner"] = None
             case "p1 steam id":
-                parsedDict["player_1"]["steam_id"] = str(number)
+                parsedDict["player1"]["steamID"] = str(number)
             case "p2 steam id":
                 if number == 0:
-                    parsedDict["player_2"]["steam_id"] = None
+                    parsedDict["player2"]["steamID"] = None
                 else:
-                    parsedDict["player_2"]["steam_id"] = str(number)
+                    parsedDict["player2"]["steamID"] = str(number)
             case "p1 name":
                 try:
                     temp = replay.read(32).decode()
@@ -875,10 +938,10 @@ def parse_metadata(
                     _ = replay.seek(-32, 1)
                     temp = replay.read(32).decode("utf-16")
                 finally:
-                    parsedDict["player_1"]["name"] = temp.replace("\x00", "", -1)
+                    parsedDict["player1"]["name"] = temp.replace("\x00", "", -1)
             case "p2 name":
-                if parsedDict["player_2"]["steam_id"] is None:
-                    parsedDict["player_2"]["name"] = None
+                if parsedDict["player2"]["steamID"] is None:
+                    parsedDict["player2"]["name"] = None
                 else:
                     try:
                         temp = replay.read(32).decode()
@@ -886,15 +949,15 @@ def parse_metadata(
                         _ = replay.seek(-32, 1)
                         temp = replay.read(32).decode("utf-16")
                     finally:
-                        parsedDict["player_2"]["name"] = temp.replace("\x00", "", -1)
+                        parsedDict["player2"]["name"] = temp.replace("\x00", "", -1)
             case "unfinished match, disconnect, desync bitmask":
                 parsedDict["unfinished"] = number % 2 == 1
                 parsedDict["disconnect"] = number in [2, 3, 6, 7]
                 parsedDict["desync"] = number >= 4
             case "p1 char":
-                parsedDict["player_1"]["character"] = character_array[number - 1]
+                parsedDict["player1"]["character"] = character_array[number - 1]
             case "p2 char":
-                parsedDict["player_2"]["character"] = character_array[number - 1]
+                parsedDict["player2"]["character"] = character_array[number - 1]
             case _:
                 raise ValueError
     replay.close()
