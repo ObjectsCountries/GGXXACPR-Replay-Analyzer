@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from enum import Enum
+from glob import glob
 from io import BufferedReader
 from json import dump
 from matplotlib.axes import Axes
@@ -8,7 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.container import BarContainer
 import matplotlib.pyplot as plt
 from matplotlib.widgets import RangeSlider
-from os import getlogin, mkdir, path, scandir
+from os import getlogin, mkdir, path
 from platform import system
 from tkinter import (
     Button,
@@ -20,6 +21,7 @@ from tkinter import (
     Tk,
     Toplevel,
     filedialog,
+    messagebox,
 )
 from typing import Any
 
@@ -49,8 +51,36 @@ ranks: list[str] = [
     "Legend",
 ]
 
+colors: list[str] = [
+    "#b34230",
+    "#3c5685",
+    "#ff8c2c",
+    "#ecc966",
+    "#bc283c",
+    "#836448",
+    "#586060",
+    "#474040",
+    "#f35460",
+    "#b9764c",
+    "#302838",
+    "#d73c38",
+    "#263c68",
+    "#181818",
+    "#0d55c7",
+    "#486880",
+    "#8c3c00",
+    "#e03048",
+    "#4a4a4a",
+    "#3b64c7",
+    "#538681",
+    "#a6390e",
+    "#64271e",
+    "#cda583",
+    "#128cd0",
+]
 
-def updateUserRanks(
+
+def update_user_ranks(
     values: tuple[float, float],
     replays: list[dict[str, Any]],
     character_array: list[str],
@@ -63,13 +93,13 @@ def updateUserRanks(
 ) -> None:
     lower: int = int(values[0])
     higher: int = int(values[1])
-    data: dict[str, list[tuple[str, float, int]]] = filterRanks(
+    data: dict[str, list[tuple[str, float, int]]] = filter_ranks(
         replays, character_array, name, lower, higher, opponent_lower, opponent_higher
     )
-    route(character, data, ax, canvas, False, False)
+    determine_view(character, data, ax, canvas, False, False)
 
 
-def updateOpponentRanks(
+def update_opponent_ranks(
     values: tuple[float, float],
     replays: list[dict[str, Any]],
     character_array: list[str],
@@ -82,10 +112,10 @@ def updateOpponentRanks(
 ) -> None:
     lower: int = int(values[0])
     higher: int = int(values[1])
-    data: dict[str, list[tuple[str, float, int]]] = filterRanks(
+    data: dict[str, list[tuple[str, float, int]]] = filter_ranks(
         replays, character_array, name, user_lower, user_higher, lower, higher
     )
-    route(character, data, ax, canvas, False, False)
+    determine_view(character, data, ax, canvas, False, False)
 
 
 class View(Enum):
@@ -108,14 +138,16 @@ match system():
         folder = f"/home/{getlogin()}/Documents/ARC SYSTEM WORKS/GGXXAC/Replays/"
 is_sorted: bool = False
 view_type: View = View.SCATTER
+corrupt_replays: str = ""
 
 
-def analyzeCharacter(
+def scatter_plot(
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
+    global colors
     ax.clear()
     _ = ax.set_xlim(0.0, 10.0)
     _ = ax.set_title(f"Matchup Spread for {character}", fontsize=20)
@@ -124,7 +156,9 @@ def analyzeCharacter(
     characters: list[str] = []
     winrates: list[float] = []
     gameAmounts: list[int] = []
-    for char_tuple in data[character]:
+    colors_visible: list[str] = []
+    for i in range(len(data[character])):
+        char_tuple: tuple[str, float, int] = data[character][i]
         if char_tuple[2] != 0:
             characters.append(char_tuple[0])
             winrates.append(char_tuple[1])
@@ -135,28 +169,34 @@ def analyzeCharacter(
                 xytext=(5, 5),
                 textcoords="offset points",
             )
-    _ = ax.scatter(x=winrates, y=gameAmounts, s=7)
+            colors_visible.append(colors[i])
+    _ = ax.scatter(x=winrates, y=gameAmounts, s=10, color=colors_visible)
     canvas.draw()
 
 
-def barGraph(
+def matchups_bar_graph(
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
+    global colors
     characters: list[str] = []
     winrates: list[float] = []
-    for char_tuple in data[character]:
+    colors_visible: list[str] = []
+    for i in range(len(data[character])):
+        char_tuple: tuple[str, float, int] = data[character][i]
         if char_tuple[2] != 0:
             characters.append(char_tuple[0])
             winrates.append(char_tuple[1])
+            colors_visible.append(colors[i])
     if len(winrates) != 0:
         characters.append("Average")
         winrates.append(sum(winrates) / len(winrates))
+        colors_visible.append("#1f7bb4")
     ax.clear()
     bars: BarContainer = ax.barh(
-        range(len(characters)), winrates, tick_label=characters
+        range(len(characters)), winrates, tick_label=characters, color=colors_visible
     )
     _ = ax.set_xlim(0.0, 10.0)
     _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=20)
@@ -167,22 +207,34 @@ def barGraph(
     canvas.draw()
 
 
-def sortedBarGraph(
+def matchups_bar_graph_sorted(
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
+    global colors
     pairs: dict[str, float] = {}
-    for char_tuple in data[character]:
+    color_pairs: dict[str, str] = {}
+    for i in range(len(data[character])):
+        char_tuple: tuple[str, float, int] = data[character][i]
         if char_tuple[2] != 0:
             pairs[char_tuple[0]] = char_tuple[1]
+            color_pairs[data[character][i][0]] = colors[i]
+    color_list: list[str] = [
+        color_pairs[k]
+        for k, _ in sorted(pairs.items(), key=lambda item: item[1], reverse=True)
+    ]
     pairs = dict(sorted(pairs.items(), key=lambda item: item[1], reverse=True))
     if len(pairs) != 0:
         pairs["Average"] = sum(pairs.values()) / len(pairs)
+        color_list.append("#1f7bb4")
     ax.clear()
     bars: BarContainer = ax.barh(
-        range(len(pairs)), list(pairs.values()), tick_label=list(pairs.keys())
+        range(len(pairs)),
+        list(pairs.values()),
+        tick_label=list(pairs.keys()),
+        color=color_list,
     )
     _ = ax.set_xlim(0.0, 10.0)
     _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=20)
@@ -193,24 +245,29 @@ def sortedBarGraph(
     canvas.draw()
 
 
-def numberOfMatches(
+def no_of_matches_bar_graph(
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
+    global colors
     characters: list[str] = []
     gameAmounts: list[int] = []
-    for char_tuple in data[character]:
+    colors_visible: list[str] = []
+    for i in range(len(data[character])):
+        char_tuple: tuple[str, float, int] = data[character][i]
         if char_tuple[2] != 0:
             characters.append(char_tuple[0])
             gameAmounts.append(char_tuple[2])
+            colors_visible.append(colors[i])
     if len(gameAmounts) != 0:
         characters.append("Average")
-        gameAmounts.append(int(sum(gameAmounts) / len(gameAmounts)))
+        gameAmounts.append(round(sum(gameAmounts) / len(gameAmounts)))
+        colors_visible.append("#1f7bb4")
     ax.clear()
     bars: BarContainer = ax.barh(
-        range(len(characters)), gameAmounts, tick_label=characters
+        range(len(characters)), gameAmounts, tick_label=characters, color=colors_visible
     )
     _ = ax.set_title(f"Number of Matches as {character}", fontsize=20)
     _ = ax.set_ylabel("Character")
@@ -220,22 +277,34 @@ def numberOfMatches(
     canvas.draw()
 
 
-def sortedNumberOfMatches(
+def no_of_matches_bar_graph_sorted(
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
+    global colors
     pairs: dict[str, float] = {}
-    for char_tuple in data[character]:
+    color_pairs: dict[str, str] = {}
+    for i in range(len(data[character])):
+        char_tuple: tuple[str, float, int] = data[character][i]
         if char_tuple[2] != 0:
             pairs[char_tuple[0]] = char_tuple[2]
+            color_pairs[data[character][i][0]] = colors[i]
+    color_list: list[str] = [
+        color_pairs[k]
+        for k, _ in sorted(pairs.items(), key=lambda item: item[1], reverse=True)
+    ]
     pairs = dict(sorted(pairs.items(), key=lambda item: item[1], reverse=True))
     if len(pairs) != 0:
         pairs["Average"] = int(sum(pairs.values()) / len(pairs))
+        color_list.append("#1f7bb4")
     ax.clear()
     bars: BarContainer = ax.barh(
-        range(len(pairs)), list(pairs.values()), tick_label=list(pairs.keys())
+        range(len(pairs)),
+        list(pairs.values()),
+        tick_label=list(pairs.keys()),
+        color=color_list,
     )
     _ = ax.set_title(f"Number of Matches as {character}", fontsize=20)
     _ = ax.set_ylabel("Character")
@@ -245,7 +314,7 @@ def sortedNumberOfMatches(
     canvas.draw()
 
 
-def filterRanks(
+def filter_ranks(
     replays: list[dict[str, Any]],
     character_array: list[str],
     name: str,
@@ -330,7 +399,7 @@ def filterRanks(
     return data
 
 
-def analyzeReplays(
+def analyze_replays(
     replay_folder_path: str,
     character_array: list[str],
     metadata_dictionary: dict[str, tuple[int, int]],
@@ -345,15 +414,22 @@ def analyzeReplays(
     slash: str = "/"
     if system() == "Windows":
         slash = "\\"
-    for filename in scandir(replay_folder_path):
-        if filename.name[-4:] == ".ggr":
+    for file in glob(f"{replay_folder_path}{slash}**{slash}*.ggr", recursive=True):
+        try:
             replays.append(
-                PartialParseMetadata(
-                    replay_folder_path + slash + filename.name,
+                partial_parse_metadata(
+                    file,
                     character_array,
                     metadata_dictionary,
                 )
             )
+        except ValueError:
+            continue
+    if len(corrupt_replays) != 0:
+        _ = messagebox.showerror(
+            "Corrupt Replays",
+            f"The following replays are corrupt:{corrupt_replays}\nThe non-corrupt replays have successfully been analyzed.",
+        )
     analysis: Toplevel = Toplevel(root)
     character: StringVar = StringVar()
     character.set("Sol")
@@ -387,7 +463,7 @@ def analyzeReplays(
     )
     sliders.append(opponent_rank)
     _ = user_rank.on_changed(
-        lambda x: updateUserRanks(
+        lambda x: update_user_ranks(
             x,
             replays,
             character_array,
@@ -400,7 +476,7 @@ def analyzeReplays(
         )
     )
     _ = opponent_rank.on_changed(
-        lambda x: updateOpponentRanks(
+        lambda x: update_opponent_ranks(
             x,
             replays,
             character_array,
@@ -412,9 +488,9 @@ def analyzeReplays(
             int(user_rank.val[1]),
         )
     )
-    analyzeCharacter(
+    scatter_plot(
         "Sol",
-        filterRanks(
+        filter_ranks(
             replays,
             character_array,
             name,
@@ -430,9 +506,9 @@ def analyzeReplays(
         analysis,
         character,
         *character_array,
-        command=lambda x: route(
+        command=lambda x: determine_view(
             x,
-            filterRanks(
+            filter_ranks(
                 replays,
                 character_array,
                 name,
@@ -451,9 +527,9 @@ def analyzeReplays(
     switchButton: Button = Button(
         analysis,
         text="Switch View",
-        command=lambda: route(
+        command=lambda: determine_view(
             character.get(),
-            filterRanks(
+            filter_ranks(
                 replays,
                 character_array,
                 name,
@@ -472,9 +548,9 @@ def analyzeReplays(
     sortButton: Button = Button(
         analysis,
         text="Sort View",
-        command=lambda: route(
+        command=lambda: determine_view(
             character.get(),
-            filterRanks(
+            filter_ranks(
                 replays,
                 character_array,
                 name,
@@ -493,7 +569,7 @@ def analyzeReplays(
     analysis.protocol("WM_DELETE_WINDOW", analysis.destroy)
 
 
-def route(
+def determine_view(
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
     ax: Axes,
@@ -507,19 +583,19 @@ def route(
             case View.SCATTER:
                 if is_sorted:
                     view_type = View.MATCHUPS_SORTED
-                    sortedBarGraph(character, data, ax, canvas)
+                    matchups_bar_graph_sorted(character, data, ax, canvas)
                 else:
                     view_type = View.MATCHUPS
-                    barGraph(character, data, ax, canvas)
+                    matchups_bar_graph(character, data, ax, canvas)
             case View.MATCHUPS:
                 view_type = View.AMOUNTS
-                numberOfMatches(character, data, ax, canvas)
+                no_of_matches_bar_graph(character, data, ax, canvas)
             case View.MATCHUPS_SORTED:
                 view_type = View.AMOUNTS_SORTED
-                sortedNumberOfMatches(character, data, ax, canvas)
+                no_of_matches_bar_graph_sorted(character, data, ax, canvas)
             case View.AMOUNTS | View.AMOUNTS_SORTED:
                 view_type = View.SCATTER
-                analyzeCharacter(character, data, ax, canvas)
+                scatter_plot(character, data, ax, canvas)
     elif sort:
         is_sorted = not is_sorted
         match view_type:
@@ -527,31 +603,31 @@ def route(
                 return
             case View.MATCHUPS:
                 view_type = View.MATCHUPS_SORTED
-                sortedBarGraph(character, data, ax, canvas)
+                matchups_bar_graph_sorted(character, data, ax, canvas)
             case View.MATCHUPS_SORTED:
                 view_type = View.MATCHUPS
-                barGraph(character, data, ax, canvas)
+                matchups_bar_graph(character, data, ax, canvas)
             case View.AMOUNTS:
                 view_type = View.AMOUNTS_SORTED
-                sortedNumberOfMatches(character, data, ax, canvas)
+                no_of_matches_bar_graph_sorted(character, data, ax, canvas)
             case View.AMOUNTS_SORTED:
                 view_type = View.AMOUNTS
-                numberOfMatches(character, data, ax, canvas)
+                no_of_matches_bar_graph(character, data, ax, canvas)
     else:
         match view_type:
             case View.SCATTER:
-                analyzeCharacter(character, data, ax, canvas)
+                scatter_plot(character, data, ax, canvas)
             case View.MATCHUPS:
-                barGraph(character, data, ax, canvas)
+                matchups_bar_graph(character, data, ax, canvas)
             case View.MATCHUPS_SORTED:
-                sortedBarGraph(character, data, ax, canvas)
+                matchups_bar_graph_sorted(character, data, ax, canvas)
             case View.AMOUNTS:
-                numberOfMatches(character, data, ax, canvas)
+                no_of_matches_bar_graph(character, data, ax, canvas)
             case View.AMOUNTS_SORTED:
-                sortedNumberOfMatches(character, data, ax, canvas)
+                no_of_matches_bar_graph_sorted(character, data, ax, canvas)
 
 
-def jsonifyReplays(
+def jsonify_replays(
     replay_folder_path: str,
     character_array: list[str],
     metadata_dictionary: dict[str, tuple[int, int]],
@@ -559,25 +635,39 @@ def jsonifyReplays(
     """
     Makes JSONs out of replays.
     """
+    global corrupt_replays
     slash: str = "/"
     if system() == "Windows":
         slash = "\\"
-    for filename in scandir(replay_folder_path):
-        if filename.name[-4:] == ".ggr":
-            data: dict[str, Any] = ParseMetadata(
-                replay_folder_path + slash + filename.name,
+    if not path.exists(f"JSONs{slash}"):
+        mkdir("JSONs")
+    for file in glob(f"{replay_folder_path}{slash}**{slash}*.ggr", recursive=True):
+        try:
+            data = parse_metadata(
+                file,
                 character_array,
                 metadata_dictionary,
             )
-            if not path.exists(f"Output{slash}"):
-                mkdir("Output")
+        except ValueError:
+            continue
+        else:
+            subdirectory: str = file[len(replay_folder_path) + 1 : file.rfind(slash)]
+            if not path.exists(subdirectory + slash):
+                mkdir("JSONs" + slash + subdirectory)
             with open(
-                f"Output{slash}{filename.name[:-4]}.json", "w", encoding="utf-8"
+                f"JSONs{slash}{file[len(replay_folder_path) + 1:-4]}.json",
+                "w",
+                encoding="utf-8",
             ) as f:
                 dump(data, f, ensure_ascii=False, indent=4)
+    if len(corrupt_replays) != 0:
+        _ = messagebox.showerror(
+            "Corrupt Replays",
+            f"The following replays are corrupt:{corrupt_replays}\nThe non-corrupt replays have successfully been made into JSONs.",
+        )
 
 
-def selectFolder() -> None:
+def select_folder() -> None:
     """
     Selects a folder.
     """
@@ -589,7 +679,7 @@ def selectFolder() -> None:
     )
 
 
-def PartialParseMetadata(
+def partial_parse_metadata(
     replay_file_path: str,
     character_array: list[str],
     metadata_dictionary: dict[str, tuple[int, int]],
@@ -597,7 +687,7 @@ def PartialParseMetadata(
     """
     Parses only the important replay metadata.
     """
-    global ranks
+    global ranks, corrupt_replays
 
     parsedDict: dict[str, Any] = {
         "p1_name": "",
@@ -609,6 +699,12 @@ def PartialParseMetadata(
         "winner": None,
     }
     replay: BufferedReader = open(replay_file_path, "rb")
+    _ = replay.seek(0, 0)
+    if (
+        replay.read(12) != b"\x47\x47\x52\x02\x51\xad\xee\x77\x45\xd7\x48\xcd"
+    ):  # Check if .ggr file has the correct replay header (GGR[\x02]Q[\xAD]îwE×HÍ)
+        corrupt_replays += "\n" + replay_file_path[len(folder) + 1 :]
+        raise ValueError
     for label, data in metadata_dictionary.items():
         _ = replay.seek(data[0], 0)
         if data[1] == 256:
@@ -657,7 +753,7 @@ def PartialParseMetadata(
     return parsedDict
 
 
-def ParseMetadata(
+def parse_metadata(
     replay_file_path: str,
     character_array: list[str],
     metadata_dictionary: dict[str, tuple[int, int]],
@@ -665,8 +761,7 @@ def ParseMetadata(
     """
     Parses the replay metadata into a readable format.
     """
-    global ranks
-
+    global ranks, corrupt_replays
     parsedDict: dict[str, Any] = {
         "date": "",
         "player_1": {
@@ -697,6 +792,12 @@ def ParseMetadata(
     }
     replay: BufferedReader = open(replay_file_path, "rb")
     date: str = ""
+    _ = replay.seek(0, 0)
+    if (
+        replay.read(12) != b"\x47\x47\x52\x02\x51\xad\xee\x77\x45\xd7\x48\xcd"
+    ):  # Check if .ggr file has the correct replay header (GGR[\x02]Q[\xAD]îwE×HÍ)
+        corrupt_replays += "\n" + replay_file_path[len(folder) + 1 :]
+        raise ValueError
     for label, data in metadata_dictionary.items():
         _ = replay.seek(data[0], 0)
         if data[1] == 256:
@@ -871,18 +972,18 @@ def main() -> None:
     username.grid(row=0, column=2, sticky="e")
     folderText: Label = Label(root, text="Please select a folder.")
     folderText.grid(row=1, column=0, sticky="w")
-    folderButton: Button = Button(root, text="Select Folder", command=selectFolder)
+    folderButton: Button = Button(root, text="Select Folder", command=select_folder)
     folderButton.grid(row=1, column=2, sticky="e")
     sortButton: Button = Button(
         root,
         text="JSON-ify Replays",
-        command=lambda: jsonifyReplays(folder, character_array, metadata_dictionary),
+        command=lambda: jsonify_replays(folder, character_array, metadata_dictionary),
     )
     sortButton.grid(row=2, column=0)
     analyzeButton: Button = Button(
         root,
         text="Analyze Replays",
-        command=lambda: analyzeReplays(
+        command=lambda: analyze_replays(
             folder, character_array, metadata_dictionary, username.get(), root
         ),
     )
