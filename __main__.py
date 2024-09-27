@@ -434,6 +434,7 @@ def analyze_replays(
     character.set("Sol")
     fig, ax = plt.subplots()
     ax.clear()
+    fig.set_figwidth(8.5)
     fig.set_figheight(7)
     _ = ax.set_xlim(0.0, 10.0)
     _ = ax.set_label(f"Matchup Spread for {character}")
