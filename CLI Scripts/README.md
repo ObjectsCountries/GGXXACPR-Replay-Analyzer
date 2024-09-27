@@ -1,6 +1,6 @@
 # CLI Scripts
 
-Credit goes to @joefish. on Discord for these scripts.
+Credit goes to @joefish. and @izyb on Discord for these scripts.
 
 ## Using OrganizeReplaysMetaData.py
 
