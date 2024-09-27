@@ -8,7 +8,7 @@ To-do list for the +R replay analyzer.
   - [ ] Add upload feature (with feedback telling user how many were already uploaded)  
 - [ ] Add recursive searching  
 - [ ] Add more scrutinous check to ensure file is actually a +R replay (“GGR\x02Q­îwE×HÍ” at beginning)  
-
+- [ ] Add colors for scatter plot  
 
 ### In Progress
 
