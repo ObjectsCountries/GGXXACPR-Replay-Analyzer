@@ -16,7 +16,6 @@ from tkinter import (
     Entry,
     Label,
     OptionMenu,
-    # PhotoImage,
     StringVar,
     Tk,
     Toplevel,
@@ -964,8 +963,6 @@ def main() -> None:
     ]
     root: Tk = Tk()
     root.title("GGXXACPR Replay Analyzer")
-    # icon: PhotoImage = PhotoImage(file="Assets/plusR.png")
-    # root.iconphoto(True, icon)
     usernameText: Label = Label(root, text="Please enter your username.")
     usernameText.grid(row=0, column=0, sticky="w")
     username: Entry = Entry(root)
