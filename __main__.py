@@ -10,7 +10,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.collections import PathCollection
 from matplotlib.container import BarContainer
 import matplotlib.pyplot as plt
-from matplotlib.text import Annotation, Text
+from matplotlib.text import Annotation
 from matplotlib.widgets import RadioButtons, RangeSlider
 from os import getlogin, mkdir, path
 from platform import system
@@ -387,9 +387,7 @@ def filter_replays(
         for char2 in character_array:
             data[char].append((char2, 0, 0))
     for replay in replays:
-        if (
-            replay_type == "Both Online and Offline" or replay_type == "Offline Only"
-        ) and replay["p2_name"] == "":
+        if replay_type != "Online Only" and replay["p2_name"] == "":
             if replay["winner"] == 1:
                 _, wins, games = data[replay["p1_char"]][
                     character_array.index(replay["p2_char"])
@@ -426,9 +424,9 @@ def filter_replays(
                 )
             continue
         if (
-            (replay_type == "Both Online and Offline" or replay_type == "Online Only")
-            and replay["p1_rank"] is not None
-            and replay["p2_rank"] is not None
+            replay_type != "Offline Only"
+            and replay["p1_rank"] != ""
+            and replay["p2_rank"] != ""
             and (
                 (
                     replay["p1_name"] == name
@@ -451,7 +449,7 @@ def filter_replays(
             )
         ):
             continue
-        if replay_type == "Both Online and Offline" or replay_type == "Online Only":
+        if replay_type != "Offline Only":
             if replay["p1_name"] == name and replay["winner"] == 1:
                 _, wins, games = data[replay["p1_char"]][
                     character_array.index(replay["p2_char"])
@@ -821,10 +819,10 @@ def partial_parse_metadata(
     parsedDict: dict[str, Any] = {
         "p1_name": "",
         "p1_char": "",
-        "p1_rank": None,
+        "p1_rank": "",
         "p2_name": "",
         "p2_char": "",
-        "p2_rank": None,
+        "p2_rank": "",
         "winner": None,
     }
     replay: BufferedReader = open(replay_file_path, "rb")
@@ -843,12 +841,12 @@ def partial_parse_metadata(
         match label:
             case "p1 rank":
                 if parsedDict["p2_name"] is None:  # check if the match was offline
-                    parsedDict["p1_rank"] = None
+                    parsedDict["p1_rank"] = ""
                 else:
                     parsedDict["p1_rank"] = ranks[number]
             case "p2 rank":
                 if parsedDict["p2_name"] is None:
-                    parsedDict["p2_rank"] = None
+                    parsedDict["p2_rank"] = ""
                 else:
                     parsedDict["p2_rank"] = ranks[number]
             case "winner side":
