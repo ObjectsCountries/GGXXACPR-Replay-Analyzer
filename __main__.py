@@ -16,7 +16,9 @@ from os import getlogin, mkdir, path
 from platform import system
 from tkinter import (
     Button,
+    Checkbutton,
     Entry,
+    IntVar,
     Label,
     OptionMenu,
     StringVar,
@@ -32,6 +34,8 @@ sliders: list[RangeSlider] = []
 annot: Annotation
 
 replay_type_selection: RadioButtons
+
+one_folder_dump_status: IntVar
 
 ranks: list[str] = [
     "Civilian",
@@ -499,6 +503,7 @@ def analyze_replays(
     character_array: list[str],
     metadata_dictionary: dict[str, tuple[int, int]],
     name: str,
+    opponent: str,
     root: Tk,
 ) -> None:
     """
@@ -506,9 +511,7 @@ def analyze_replays(
     """
     global view_type, is_sorted, sliders, replay_type_selection
     replays: list[dict[str, Any]] = []
-    slash: str = "/"
-    if system() == "Windows":
-        slash = "\\"
+    slash: str = "\\" if system() == "Windows" else "/"
     for file in glob(f"{replay_folder_path}{slash}**{slash}*.ggr", recursive=True):
         try:
             replays.append(
@@ -762,10 +765,8 @@ def jsonify_replays(
     """
     Makes JSONs out of replays.
     """
-    global corrupt_replays
-    slash: str = "/"
-    if system() == "Windows":
-        slash = "\\"
+    global corrupt_replays, one_folder_dump_status
+    slash: str = "\\" if system() == "Windows" else "/"
     if not path.exists(f"JSONs{slash}"):
         mkdir("JSONs")
     for file in glob(f"{replay_folder_path}{slash}**{slash}*.ggr", recursive=True):
@@ -779,14 +780,24 @@ def jsonify_replays(
             continue
         else:
             subdirectory: str = file[len(replay_folder_path) + 1 : file.rfind(slash)]
-            if not path.exists(subdirectory + slash):
-                mkdir("JSONs" + slash + subdirectory)
-            with open(
-                f"JSONs{slash}{file[len(replay_folder_path) + 1:-4]}.json",
-                "w",
-                encoding="utf-8",
-            ) as f:
-                dump(data, f, ensure_ascii=False, indent=4)
+            if one_folder_dump_status.get() == 0:
+                if not path.exists("JSONs" + slash + subdirectory + slash):
+                    mkdir("JSONs" + slash + subdirectory)
+                with open(
+                    f"JSONs{slash}{file[len(replay_folder_path) + 1:-4]}.json",
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    dump(data, f, ensure_ascii=False, indent=4)
+            else:
+                if not path.exists("JSONs" + slash):
+                    mkdir("JSONs")
+                with open(
+                    f"JSONs{slash}{file[len(replay_folder_path) + len(subdirectory) + 1:-4]}.json",
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    dump(data, f, ensure_ascii=False, indent=4)
     if len(corrupt_replays) != 0:
         _ = messagebox.showerror(
             "Corrupt Replays",
@@ -889,7 +900,7 @@ def parse_metadata(
     Parses the replay metadata into a readable format.
     """
     global ranks, corrupt_replays
-    parsedDict: dict[str, Any] = {
+    parsed_dict: dict[str, Any] = {
         "date": "",
         "player1": {
             "steamID": "",
@@ -948,53 +959,53 @@ def parse_metadata(
                     date += f"+{(int(time_offset/60)):02}:{(time_offset%60):02}"
                 else:
                     date += f"{(int(time_offset/60)):03}:{((-1*time_offset)%60):02}"
-                parsedDict["date"] = date
+                parsed_dict["date"] = date
             case "p1 rank":
                 if (
-                    parsedDict["player2"]["name"] is None
+                    parsed_dict["player2"]["name"] is None
                 ):  # check if the match was offline
-                    parsedDict["player1"]["rank"] = None
+                    parsed_dict["player1"]["rank"] = None
                 else:
-                    parsedDict["player1"]["rank"] = ranks[number]
+                    parsed_dict["player1"]["rank"] = ranks[number]
             case "p2 rank":
                 if (
-                    parsedDict["player2"]["name"] is None
+                    parsed_dict["player2"]["name"] is None
                 ):  # same as above, both should be player 2
-                    parsedDict["player2"]["rank"] = None
+                    parsed_dict["player2"]["rank"] = None
                 else:
-                    parsedDict["player2"]["rank"] = ranks[number]
+                    parsed_dict["player2"]["rank"] = ranks[number]
             case "ex chars?":
-                parsedDict["EXchars"] = number == 1
+                parsed_dict["EXchars"] = number == 1
             case "single or team":
-                parsedDict["team"] = number == 2
+                parsed_dict["team"] = number == 2
             case "+R or AC":
-                parsedDict["accentCore"] = number == 1
+                parsed_dict["accentCore"] = number == 1
             case "ping":
-                parsedDict["ping"] = number
+                parsed_dict["ping"] = number
             case "match duration in frames":
-                parsedDict["duration"] = number / 60
+                parsed_dict["duration"] = number / 60
             case "p1 rounds":
-                parsedDict["player1"]["rounds"] = number
+                parsed_dict["player1"]["rounds"] = number
             case "p2 rounds":
-                parsedDict["player2"]["rounds"] = number
+                parsed_dict["player2"]["rounds"] = number
             case "p1 score":
-                parsedDict["player1"]["score"] = number
+                parsed_dict["player1"]["score"] = number
             case "p2 score":
-                parsedDict["player2"]["score"] = number
+                parsed_dict["player2"]["score"] = number
             case "winner side":
                 if number == 1:
-                    parsedDict["winner"] = "player_1"
+                    parsed_dict["winner"] = "player_1"
                 elif number == 2:
-                    parsedDict["winner"] = "player_2"
+                    parsed_dict["winner"] = "player_2"
                 else:
-                    parsedDict["winner"] = None
+                    parsed_dict["winner"] = None
             case "p1 steam id":
-                parsedDict["player1"]["steamID"] = str(number)
+                parsed_dict["player1"]["steamID"] = str(number)
             case "p2 steam id":
                 if number == 0:
-                    parsedDict["player2"]["steamID"] = None
+                    parsed_dict["player2"]["steamID"] = None
                 else:
-                    parsedDict["player2"]["steamID"] = str(number)
+                    parsed_dict["player2"]["steamID"] = str(number)
             case "p1 name":
                 try:
                     temp = replay.read(32).decode()
@@ -1002,10 +1013,10 @@ def parse_metadata(
                     _ = replay.seek(-32, 1)
                     temp = replay.read(32).decode("utf-16")
                 finally:
-                    parsedDict["player1"]["name"] = temp.replace("\x00", "", -1)
+                    parsed_dict["player1"]["name"] = temp.replace("\x00", "", -1)
             case "p2 name":
-                if parsedDict["player2"]["steamID"] is None:
-                    parsedDict["player2"]["name"] = None
+                if parsed_dict["player2"]["steamID"] is None:
+                    parsed_dict["player2"]["name"] = None
                 else:
                     try:
                         temp = replay.read(32).decode()
@@ -1013,26 +1024,26 @@ def parse_metadata(
                         _ = replay.seek(-32, 1)
                         temp = replay.read(32).decode("utf-16")
                     finally:
-                        parsedDict["player2"]["name"] = temp.replace("\x00", "", -1)
+                        parsed_dict["player2"]["name"] = temp.replace("\x00", "", -1)
             case "unfinished match, disconnect, desync bitmask":
-                parsedDict["unfinished"] = number % 2 == 1
-                parsedDict["disconnect"] = number in [2, 3, 6, 7]
-                parsedDict["desync"] = number >= 4
+                parsed_dict["unfinished"] = number % 2 == 1
+                parsed_dict["disconnect"] = number in [2, 3, 6, 7]
+                parsed_dict["desync"] = number >= 4
             case "p1 char":
-                parsedDict["player1"]["character"] = character_array[number - 1]
+                parsed_dict["player1"]["character"] = character_array[number - 1]
             case "p2 char":
-                parsedDict["player2"]["character"] = character_array[number - 1]
+                parsed_dict["player2"]["character"] = character_array[number - 1]
             case _:
                 raise ValueError
     replay.close()
-    return parsedDict
+    return parsed_dict
 
 
 def main() -> None:
     """
     Main functionality.
     """
-    global folder, sliders
+    global folder, sliders, one_folder_dump_status
     metadata_dictionary: dict[str, tuple[int, int]] = {
         "year": (0x1A, 16),
         "month": (0x1C, 8),
@@ -1091,28 +1102,42 @@ def main() -> None:
     ]
     root: Tk = Tk()
     root.title("GGXXACPR Replay Analyzer")
-    usernameText: Label = Label(root, text="Please enter your username.")
-    usernameText.grid(row=0, column=0, sticky="w")
+    username_text: Label = Label(root, text="Please enter your username.")
+    username_text.grid(row=0, column=0, columnspan=2, sticky="w")
     username: Entry = Entry(root)
     username.grid(row=0, column=2, sticky="e")
-    folderText: Label = Label(root, text="Please select a folder.")
-    folderText.grid(row=1, column=0, sticky="w")
-    folderButton: Button = Button(root, text="Select Folder", command=select_folder)
-    folderButton.grid(row=1, column=2, sticky="e")
-    sortButton: Button = Button(
+    opponent_text: Label = Label(
+        root, text="Please enter an opponent's username (optional)."
+    )
+    opponent_text.grid(row=1, column=0, columnspan=2, sticky="w")
+    opponent: Entry = Entry(root)
+    opponent.grid(row=1, column=2, sticky="e")
+    folder_text: Label = Label(root, text="Please select a folder.")
+    folder_text.grid(row=2, column=0, columnspan=2, sticky="w")
+    folder_button: Button = Button(root, text="Select Folder", command=select_folder)
+    folder_button.grid(row=2, column=2, sticky="e")
+    one_folder_dump_status = IntVar()
+    one_folder_dump: Checkbutton = Checkbutton(root, text="Dump all JSONs into one folder", variable=one_folder_dump_status, onvalue=1, offvalue=0)
+    one_folder_dump.grid(row=3, column=0, sticky="w")
+    sort_button: Button = Button(
         root,
         text="JSON-ify Replays",
         command=lambda: jsonify_replays(folder, character_array, metadata_dictionary),
     )
-    sortButton.grid(row=2, column=0)
-    analyzeButton: Button = Button(
+    sort_button.grid(row=4, column=0)
+    analyze_button: Button = Button(
         root,
         text="Analyze Replays",
         command=lambda: analyze_replays(
-            folder, character_array, metadata_dictionary, username.get(), root
+            folder,
+            character_array,
+            metadata_dictionary,
+            username.get(),
+            opponent.get(),
+            root,
         ),
     )
-    analyzeButton.grid(row=2, column=2)
+    analyze_button.grid(row=4, column=2)
     root.protocol("WM_DELETE_WINDOW", exit)
     root.mainloop()
 

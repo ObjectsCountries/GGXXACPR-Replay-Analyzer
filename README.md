@@ -29,5 +29,4 @@ If you would like to contribute, please feel free to fork this project. Addition
 - [ ] Integrate with https://acpr.frameone.net/
   - [ ] Add download feature (ensure duplicates are not downloaded)
   - [ ] Add upload feature (with feedback telling user how many were already uploaded, failed to upload, etc.)
-- [ ] Add button that outputs all JSONs in one folder without making subfolders
 - [ ] Add feature to filter replays by opponent
