@@ -5,7 +5,8 @@ To-do list for the +R replay analyzer.
 
 - [ ] Integrate with https://acpr.frameone.net/  
   - [ ] Add download feature (ensure duplicates are not downloaded)  
-  - [ ] Add upload feature (with feedback telling user how many were already uploaded, failed to upload, etc.)  
+  - [ ] Add upload feature (with feedback telling user how many were already uploaded, failed to upload, etc.)
+  - [ ] Ensure offline replays are unaffected by rank filter 
 
 ### In Progress
 
