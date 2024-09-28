@@ -2,7 +2,7 @@
 
 Credit goes to @joefish. and @izyb on Discord for these scripts.
 
-## Using OrganizeReplaysMetaData.py
+## Using [OrganizeReplaysMetaData.py](OrganizeReplaysMetaData.py)
 
 ### Python
 
@@ -152,9 +152,9 @@ If you’re getting file not found errors, you may need to adjust this file path
 
 Unfortunately I’ve only seen this error once and I was unable to resolve it, if you encounter a permission error, please let me know and I’ll try to help you with it. This user in particular was having permission errors with OneDrive that created bizarre results with the legacy script where it wouldn’t even error out, but it wouldn’t reach various print statements either.
 
-## Using ReplayStats.py
+## Using [ReplayStats.py](ReplayStats.py)
 
-ReplayStats.py is a companion script to the OrganizeReplaysMetaData.py script.
+[ReplayStats.py](ReplayStats.py) is a companion script to the [OrganizeReplaysMetaData.py](OrganizeReplaysMetaData.py) script.
 
 You'll need to run that organization first for this to work.
 
