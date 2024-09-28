@@ -5,9 +5,12 @@ from glob import glob
 from io import BufferedReader
 from json import dump
 from matplotlib.axes import Axes
+from matplotlib.backend_bases import MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.collections import PathCollection
 from matplotlib.container import BarContainer
 import matplotlib.pyplot as plt
+from matplotlib.text import Annotation, Text
 from matplotlib.widgets import RadioButtons, RangeSlider
 from os import getlogin, mkdir, path
 from platform import system
@@ -25,6 +28,8 @@ from tkinter import (
 from typing import Any
 
 sliders: list[RangeSlider] = []
+
+annot: Annotation
 
 replay_type_selection: RadioButtons
 
@@ -108,6 +113,51 @@ def update_replays(
     determine_view(character, data, ax, canvas, False, False)
 
 
+def hover(
+    event: MouseEvent,
+    canvas: FigureCanvasTkAgg,
+    ax: Axes,
+    sc: PathCollection,
+    characters: list[str],
+    winrates: list[float],
+    games: list[int],
+    colors: list[str],
+):
+    global annot
+    vis = annot.get_visible()
+    if event.inaxes == ax:
+        cont, ind = sc.contains(event)
+        if cont:
+            update_annot(ind, sc, winrates, games, colors)
+            annot.set_visible(True)
+            canvas.draw_idle()
+        else:
+            if vis:
+                annot.set_visible(False)
+                canvas.draw_idle()
+
+
+def update_annot(
+    ind: dict[str, list[int]],
+    sc: PathCollection,
+    winrates: list[float],
+    games: list[int],
+    colors: list[str],
+):
+    global annot
+    pos: tuple[float, float] = sc.get_offsets()[ind["ind"][0]]
+    annot.xy = pos
+    text = "{}:{}\n{} {}".format(
+        f"{winrates[ind["ind"][0]]:.1f}",
+        f"{(10 - winrates[ind["ind"][0]]):.1f}",
+        games[ind["ind"][0]],
+        "Match" if games[ind["ind"][0]] == 1 else "Matches",
+    )
+    annot.set_text(text)
+    annot.get_bbox_patch().set_color(colors[ind["ind"][0]])
+    annot.get_bbox_patch().set_alpha(0.6)
+
+
 class View(Enum):
     SCATTER = (0,)
     MATCHUPS = (1,)
@@ -137,7 +187,7 @@ def scatter_plot(
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
-    global colors
+    global colors, annot
     ax.clear()
     _ = ax.set_xlim(0.0, 10.0)
     _ = ax.set_title(f"Matchup Spread for {character}", fontsize=20)
@@ -145,14 +195,14 @@ def scatter_plot(
     _ = ax.set_ylabel("Number of Matches")
     characters: list[str] = []
     winrates: list[float] = []
-    gameAmounts: list[int] = []
+    game_amounts: list[int] = []
     colors_visible: list[str] = []
     for i in range(len(data[character])):
         char_tuple: tuple[str, float, int] = data[character][i]
         if char_tuple[2] != 0:
             characters.append(char_tuple[0])
             winrates.append(char_tuple[1])
-            gameAmounts.append(char_tuple[2])
+            game_amounts.append(char_tuple[2])
             _ = ax.annotate(
                 text=char_tuple[0],
                 xy=(char_tuple[1], char_tuple[2]),
@@ -160,7 +210,23 @@ def scatter_plot(
                 textcoords="offset points",
             )
             colors_visible.append(colors[i])
-    _ = ax.scatter(x=winrates, y=gameAmounts, s=10, color=colors_visible)
+    annot = ax.annotate(
+        text="",
+        xy=(0, 0),
+        xytext=(-70, -20),
+        textcoords="offset points",
+        bbox=dict(boxstyle="round", fc="w"),
+        fontsize=13,
+    )
+    scatter: PathCollection = ax.scatter(
+        x=winrates, y=game_amounts, s=10, color=colors_visible
+    )
+    _ = canvas.mpl_connect(
+        "motion_notify_event",
+        lambda e: hover(
+            e, canvas, ax, scatter, characters, winrates, game_amounts, colors_visible
+        ),
+    )
     canvas.draw()
 
 
