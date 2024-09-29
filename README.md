@@ -1,20 +1,40 @@
 # GGXXACPR Replay Analyzer
 
-This simple GUI app displays information gathered from *Guilty Gear XX Accent Core Plus R* replays, and plots said information onto graphs.
+This simple GUI app analyzes information gathered from *Guilty Gear XX Accent Core Plus R* replays, and plots said information onto graphs.
 
 ## How to Use
 
-Matplotlib is required, install here: https://matplotlib.org/stable/install/index.html
+### Required Downloads
 
-The only script required is [\_\_main__.py](__main__.py).
+Python is needed to run the script, install here: https://www.python.org/downloads/
 
-Simply enter your username, select the folder with the replays (the app should go to the correct one by default), and click either of the buttons at the bottom.
+Matplotlib is needed to render the graphs, install here: https://matplotlib.org/stable/install/index.html
 
-Selecting a folder is not necessary unless your replays are not in the default folder (On Windows: C:\Users\\(your username)\Documents\ARC SYSTEM WORKS\GGXXAC\Replays\\).
+The only file that has to be downloaded from this repo is [\_\_main__.py](__main__.py). This script does not have to be in the same folder as the replays.
 
-The “JSON-ify Replays” button will make a JSON out of every file in the replay folder, and the “Analyze Replays” button opens a window showing the aforementioned graphs. **Note that you do not need to make the JSONs before viewing the graphs.** If a file does not have the proper heading for a +R replay, it will be marked as corrupt and skipped. The program will warn the user of any corrupt replays before converting the non-corrupt replays to JSONs/analyzing the non-corrupt replays.
+### Setup
 
-Once the second window has opened, select your character with the dropdown at the top left. The “Switch View” button will switch between a scatter plot of both matchup win rates and matches played, a bar graph of matchup win rates, and a bar graph of matches played, all for the selected character. Hovering over any point on the scatter plot will display further details about matchup win rates and number of matches played. The “Sort View” button will sort the bar graphs from highest to lowest, with the average always at the bottom. The two sliders show the range of online ranks for you (first slider) and your opponent (second slider). The radio buttons at the bottom filter between offline replays, online replays, and both.
+Simply enter your username, select the folder with the replays (the app should go to the correct one by default), and click either of the buttons at the bottom. Optionally, enter a second player’s name to filter for replays only between you and them.
+
+Selecting a folder is not necessary unless your replays are not in the default folder (On Windows: C:\Users\\(your username)\Documents\ARC SYSTEM WORKS\GGXXAC\Replays\\), but opening the folder selector and exiting out without selecting anything will yield an empty path as the selected folder.
+
+### JSONs
+
+The “JSON-ify Replays” button will make a JSON out of every file in the replay folder, outputting to a new folder called “JSONs” located where the script is. When making the JSONs, there is a checkbox that determines whether the program preserves folder structure, or dumps everything into one folder. **Note that you do not need to make the JSONs before viewing the graphs.**
+
+If a file does not have the proper heading for a +R replay, it will be marked as corrupt and skipped. The program will warn the user of any corrupt replays before converting the non-corrupt replays to JSONs/analyzing the non-corrupt replays.
+
+### Replay Analysis
+
+The “Analyze Replays” button opens a second window showing a graph for a specific character. Once the second window has opened, select your character with the dropdown at the top left (defaults to Sol).
+
+Hovering over any point on the scatter plot will display further details about matchup win rates and number of matches played.
+
+The “Switch View” button will switch between a scatter plot of matchup win rates and matches played, a bar graph of matchup win rates, and a bar graph of matches played, all for the selected character.
+
+The “Sort View” button will sort the bar graphs from highest to lowest, with the average always at the bottom.
+
+The two sliders show the range of online ranks for you (first slider) and your opponent (second slider). The radio buttons at the bottom filter between offline replays, online replays, and both.
 
 ## CLI Scripts
 
