@@ -4,20 +4,15 @@ from enum import Enum
 from glob import glob
 from io import BufferedReader
 from json import dump
-from matplotlib.axes import Axes
-from matplotlib.backend_bases import MouseEvent
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.collections import PathCollection
-from matplotlib.container import BarContainer
-import matplotlib.pyplot as plt
-from matplotlib.text import Annotation
-from matplotlib.widgets import RadioButtons, RangeSlider
 from os import getlogin, mkdir, path
 from platform import system
 from tkinter import (
+    DISABLED,
+    NORMAL,
     Button,
     Checkbutton,
     Entry,
+    Frame,
     IntVar,
     Label,
     OptionMenu,
@@ -29,6 +24,15 @@ from tkinter import (
 )
 from typing import Any
 
+from matplotlib.pyplot import subplots
+from matplotlib.axes import Axes
+from matplotlib.backend_bases import MouseEvent
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.collections import PathCollection
+from matplotlib.container import BarContainer
+from matplotlib.text import Annotation
+from matplotlib.widgets import RadioButtons, RangeSlider
+
 sliders: list[RangeSlider] = []
 
 annot: Annotation
@@ -36,6 +40,8 @@ annot: Annotation
 replay_type_selection: RadioButtons
 
 one_folder_dump_status: IntVar
+
+sort_button: Button
 
 ranks: list[str] = [
     "Civilian",
@@ -195,9 +201,9 @@ def scatter_plot(
     global colors, annot
     ax.clear()
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Spread for {character}", fontsize=20)
-    _ = ax.set_xlabel("Win Rate")
-    _ = ax.set_ylabel("Number of Matches")
+    _ = ax.set_title(f"Matchup Spread for {character}", fontsize=26)
+    _ = ax.set_xlabel("Win Rate", fontsize=18)
+    _ = ax.set_ylabel("Number of Matches", fontsize=18)
     characters: list[str] = []
     winrates: list[float] = []
     game_amounts: list[int] = []
@@ -213,18 +219,19 @@ def scatter_plot(
                 xy=(char_tuple[1], char_tuple[2]),
                 xytext=(5, 5),
                 textcoords="offset points",
+                fontsize=13,
             )
             colors_visible.append(colors[i])
     annot = ax.annotate(
         text="",
         xy=(0, 0),
-        xytext=(-70, -20),
+        xytext=(-70, 20),
         textcoords="offset points",
         bbox=dict(boxstyle="round", fc="w"),
-        fontsize=13,
+        fontsize=15,
     )
     scatter: PathCollection = ax.scatter(
-        x=winrates, y=game_amounts, s=10, color=colors_visible
+        x=winrates, y=game_amounts, s=20, color=colors_visible
     )
     _ = canvas.mpl_connect(
         "motion_notify_event",
@@ -258,9 +265,9 @@ def matchups_bar_graph(
         range(len(characters)), winrates, tick_label=characters, color=colors_visible
     )
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=20)
-    _ = ax.set_ylabel("Character")
-    _ = ax.set_xlabel("Win Rate")
+    _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=26)
+    _ = ax.set_ylabel("Character", fontsize=18)
+    _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
     ax.invert_yaxis()
     canvas.draw()
@@ -296,9 +303,9 @@ def matchups_bar_graph_sorted(
         color=color_list,
     )
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=20)
-    _ = ax.set_ylabel("Character")
-    _ = ax.set_xlabel("Win Rate")
+    _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=26)
+    _ = ax.set_ylabel("Character", fontsize=18)
+    _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
     ax.invert_yaxis()
     canvas.draw()
@@ -328,9 +335,9 @@ def no_of_matches_bar_graph(
     bars: BarContainer = ax.barh(
         range(len(characters)), gameAmounts, tick_label=characters, color=colors_visible
     )
-    _ = ax.set_title(f"Number of Matches as {character}", fontsize=20)
-    _ = ax.set_ylabel("Character")
-    _ = ax.set_xlabel("Win Rate")
+    _ = ax.set_title(f"Number of Matches as {character}", fontsize=26)
+    _ = ax.set_ylabel("Character", fontsize=18)
+    _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, padding=2)
     ax.invert_yaxis()
     canvas.draw()
@@ -356,7 +363,7 @@ def no_of_matches_bar_graph_sorted(
     ]
     pairs = dict(sorted(pairs.items(), key=lambda item: item[1], reverse=True))
     if len(pairs) != 0:
-        pairs["Average"] = int(sum(pairs.values()) / len(pairs))
+        pairs["Average"] = round(sum(pairs.values()) / len(pairs))
         color_list.append("#1f7bb4")
     ax.clear()
     bars: BarContainer = ax.barh(
@@ -365,9 +372,9 @@ def no_of_matches_bar_graph_sorted(
         tick_label=list(pairs.keys()),
         color=color_list,
     )
-    _ = ax.set_title(f"Number of Matches as {character}", fontsize=20)
-    _ = ax.set_ylabel("Character")
-    _ = ax.set_xlabel("Win Rate")
+    _ = ax.set_title(f"Number of Matches as {character}", fontsize=26)
+    _ = ax.set_ylabel("Character", fontsize=18)
+    _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, padding=2)
     ax.invert_yaxis()
     canvas.draw()
@@ -608,7 +615,7 @@ def analyze_replays(
     """
     Opens a new window to graph replays.
     """
-    global view_type, is_sorted, sliders, replay_type_selection
+    global view_type, is_sorted, sliders, replay_type_selection, sort_button
     replays: list[dict[str, Any]] = []
     slash: str = "\\" if system() == "Windows" else "/"
     for file in glob(f"{replay_folder_path}{slash}**{slash}*.ggr", recursive=True):
@@ -628,16 +635,17 @@ def analyze_replays(
             f"The following replays are corrupt:{corrupt_replays}\nThe non-corrupt replays have successfully been analyzed.",
         )
     analysis: Toplevel = Toplevel(root)
+    analysis.resizable(False, False)
     character: StringVar = StringVar()
     character.set("Sol")
-    fig, ax = plt.subplots()
+    fig, ax = subplots()
     ax.clear()
     fig.set_figwidth(9)
     fig.set_figheight(9)
     _ = ax.set_xlim(0.0, 10.0)
     _ = ax.set_label(f"Matchup Spread for {character}")
-    _ = ax.set_xlabel("Win Rate")
-    _ = ax.set_ylabel("Number of Matches")
+    _ = ax.set_xlabel("Win Rate", fontsize=18)
+    _ = ax.set_ylabel("Number of Matches", fontsize=18)
     canvas: FigureCanvasTkAgg = FigureCanvasTkAgg(fig, master=analysis)
     canvas.get_tk_widget().grid(row=1, column=0, columnspan=3)
     user_rank_axes: Axes = fig.add_axes([0.2, 0.96, 0.6, 0.03])
@@ -756,7 +764,7 @@ def analyze_replays(
         ),
     )
     dropdown.grid(row=0, column=0)
-    switchButton: Button = Button(
+    switch_button: Button = Button(
         analysis,
         text="Switch View",
         command=lambda: determine_view(
@@ -778,10 +786,10 @@ def analyze_replays(
             False,
         ),
     )
-    switchButton.grid(row=0, column=1)
-    sortButton: Button = Button(
+    switch_button.grid(row=0, column=1)
+    sort_button = Button(
         analysis,
-        text="Sort View",
+        text="Toggle Sorting",
         command=lambda: determine_view(
             character.get(),
             filter_replays(
@@ -801,7 +809,8 @@ def analyze_replays(
             True,
         ),
     )
-    sortButton.grid(row=0, column=2)
+    sort_button.grid(row=0, column=2)
+    sort_button["state"] = DISABLED
     analysis.protocol("WM_DELETE_WINDOW", analysis.destroy)
 
 
@@ -813,8 +822,13 @@ def determine_view(
     switch: bool,
     sort: bool,
 ) -> None:
-    global view_type, is_sorted
+    global view_type, is_sorted, sort_button
     if switch:
+        sort_button["state"] = (
+            DISABLED
+            if view_type == View.AMOUNTS or view_type == View.AMOUNTS_SORTED
+            else NORMAL
+        )
         match view_type:
             case View.SCATTER:
                 if is_sorted:
@@ -850,6 +864,7 @@ def determine_view(
                 view_type = View.AMOUNTS
                 no_of_matches_bar_graph(character, data, ax, canvas)
     else:
+        sort_button["state"] = DISABLED if view_type == View.SCATTER else NORMAL
         match view_type:
             case View.SCATTER:
                 scatter_plot(character, data, ax, canvas)
@@ -917,7 +932,7 @@ def select_folder() -> None:
     """
     global folder
     folder = filedialog.askdirectory(
-        title="Select the folder with the replays",
+        title="Please select the folder with the replays.",
         initialdir=folder,
         mustexist=True,
     )
@@ -1208,20 +1223,21 @@ def main() -> None:
     ]
     root: Tk = Tk()
     root.title("GGXXACPR Replay Analyzer")
+    root.resizable(False, False)
     username_text: Label = Label(root, text="Please enter your username.")
-    username_text.grid(row=0, column=0, columnspan=2, sticky="w")
+    username_text.grid(row=0, column=0, sticky="we", padx=(15, 5))
     username: Entry = Entry(root)
-    username.grid(row=0, column=2, sticky="e")
+    username.grid(row=0, column=1, sticky="we", padx=(0, 15), pady=(15, 0))
     opponent_text: Label = Label(
-        root, text="Please enter an opponent's username (optional)."
+        root, text="Please enter an opponent's\nusername (optional)."
     )
-    opponent_text.grid(row=1, column=0, columnspan=2, sticky="w")
+    opponent_text.grid(row=1, column=0, sticky="we")
     opponent: Entry = Entry(root)
-    opponent.grid(row=1, column=2, sticky="e")
+    opponent.grid(row=1, column=1, sticky="we", padx=(0, 15), pady=(15, 0))
     folder_text: Label = Label(root, text="Please select a folder.")
-    folder_text.grid(row=2, column=0, columnspan=2, sticky="w")
+    folder_text.grid(row=2, column=0, sticky="we")
     folder_button: Button = Button(root, text="Select Folder", command=select_folder)
-    folder_button.grid(row=2, column=2, sticky="e")
+    folder_button.grid(row=2, column=1, sticky="we", padx=(0, 15), pady=(15, 0))
     one_folder_dump_status = IntVar()
     one_folder_dump: Checkbutton = Checkbutton(
         root,
@@ -1230,15 +1246,17 @@ def main() -> None:
         onvalue=1,
         offvalue=0,
     )
-    one_folder_dump.grid(row=3, column=0, sticky="w")
-    sort_button: Button = Button(
-        root,
+    one_folder_dump.grid(row=3, column=0, columnspan=2, pady=15)
+    button_frame: Frame = Frame(root)
+    button_frame.grid(row=4, column=0, columnspan=2)
+    jsonify_button: Button = Button(
+        button_frame,
         text="JSON-ify Replays",
         command=lambda: jsonify_replays(folder, character_array, metadata_dictionary),
     )
-    sort_button.grid(row=4, column=0)
+    jsonify_button.grid(row=0, column=0, padx=(0, 40), pady=(0, 10))
     analyze_button: Button = Button(
-        root,
+        button_frame,
         text="Analyze Replays",
         command=lambda: analyze_replays(
             folder,
@@ -1249,7 +1267,7 @@ def main() -> None:
             root,
         ),
     )
-    analyze_button.grid(row=4, column=2)
+    analyze_button.grid(row=0, column=1, padx=(40, 0), pady=(0, 10))
     root.protocol("WM_DELETE_WINDOW", exit)
     root.mainloop()
 

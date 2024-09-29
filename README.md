@@ -1,6 +1,6 @@
 # GGXXACPR Replay Analyzer
 
-This simple GUI app analyzes information gathered from *Guilty Gear XX Accent Core Plus R* replays, and plots said information onto graphs.
+This interactive GUI app analyzes information gathered from *Guilty Gear XX Accent Core Plus R* replays, and plots said information onto graphs.
 
 ## How to Use
 
@@ -10,29 +10,29 @@ Python is needed to run the script, install here: https://www.python.org/downloa
 
 Matplotlib is needed to render the graphs, install here: https://matplotlib.org/stable/install/index.html
 
-The only file that has to be downloaded from this repo is [\_\_main__.py](__main__.py). This script does not have to be in the same folder as the replays.
+The only file that has to be downloaded from this repo is [replay_analyzer.py](replay_analyzer.py). This script does not have to be in the same folder as the replays.
 
 ### Setup
 
 Simply enter your username, select the folder with the replays (the app should go to the correct one by default), and click either of the buttons at the bottom. Optionally, enter a second player’s name to filter for replays only between you and them.
 
-Selecting a folder is not necessary unless your replays are not in the default folder (On Windows: C:\Users\\(your username)\Documents\ARC SYSTEM WORKS\GGXXAC\Replays\\), but opening the folder selector and exiting out without selecting anything will yield an empty path as the selected folder.
+Selecting a folder is not necessary unless your replays are not in the default folder (On Windows: C:\Users\\(your username)\Documents\ARC SYSTEM WORKS\GGXXAC\Replays\\), but opening the folder selector and closing it without selecting anything will yield an empty path as the selected folder and will result in an empty JSONs folder and blank graphs.
+
+If a file does not have the proper heading for a +R replay, it will be marked as corrupt and skipped. The program will warn the user of any corrupt replays before converting the non-corrupt replays to JSONs/analyzing the non-corrupt replays.
 
 ### JSONs
 
 The “JSON-ify Replays” button will make a JSON out of every file in the replay folder, outputting to a new folder called “JSONs” located where the script is. When making the JSONs, there is a checkbox that determines whether the program preserves folder structure, or dumps everything into one folder. **Note that you do not need to make the JSONs before viewing the graphs.**
 
-If a file does not have the proper heading for a +R replay, it will be marked as corrupt and skipped. The program will warn the user of any corrupt replays before converting the non-corrupt replays to JSONs/analyzing the non-corrupt replays.
-
 ### Replay Analysis
 
-The “Analyze Replays” button opens a second window showing a graph for a specific character. Once the second window has opened, select your character with the dropdown at the top left (defaults to Sol).
+The “Analyze Replays” button opens a second window showing a scatter plot for a given character (defaults to Sol). Select your character with the dropdown at the top left.
 
 Hovering over any point on the scatter plot will display further details about matchup win rates and number of matches played.
 
-The “Switch View” button will switch between a scatter plot of matchup win rates and matches played, a bar graph of matchup win rates, and a bar graph of matches played, all for the selected character.
+The “Switch View” button will switch between the scatter plot of matchup win rates and matches played, a bar graph of matchup win rates, and a bar graph of matches played, all for the selected character.
 
-The “Sort View” button will sort the bar graphs from highest to lowest, with the average always at the bottom.
+The “Toggle Sorting” button will switch between sorting the bar graphs by character and by amount (highest to lowest), with the average always at the bottom.
 
 The two sliders show the range of online ranks for you (first slider) and your opponent (second slider). The radio buttons at the bottom filter between offline replays, online replays, and both.
 
