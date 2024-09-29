@@ -95,6 +95,7 @@ def update_replays(
     replays: list[dict[str, Any]],
     character_array: list[str],
     name: str,
+    opponent: str,
     character: str,
     ax: Axes,
     canvas: FigureCanvasTkAgg,
@@ -108,6 +109,7 @@ def update_replays(
         replays,
         character_array,
         name,
+        opponent,
         replay_type,
         user_lower,
         user_higher,
@@ -122,7 +124,6 @@ def hover(
     canvas: FigureCanvasTkAgg,
     ax: Axes,
     sc: PathCollection,
-    characters: list[str],
     winrates: list[float],
     games: list[int],
     colors: list[str],
@@ -227,9 +228,7 @@ def scatter_plot(
     )
     _ = canvas.mpl_connect(
         "motion_notify_event",
-        lambda e: hover(
-            e, canvas, ax, scatter, characters, winrates, game_amounts, colors_visible
-        ),
+        lambda e: hover(e, canvas, ax, scatter, winrates, game_amounts, colors_visible),
     )
     canvas.draw()
 
@@ -378,6 +377,7 @@ def filter_replays(
     replays: list[dict[str, Any]],
     character_array: list[str],
     name: str,
+    opponent: str,
     replay_type: str,
     lower_bound: int = 0,
     higher_bound: int = 20,
@@ -427,69 +427,168 @@ def filter_replays(
                     games + 1,
                 )
             continue
-        if (
-            replay_type != "Offline Only"
-            and replay["p1_rank"] != ""
-            and replay["p2_rank"] != ""
-            and (
-                (
+        if opponent == "":
+            if (
+                replay_type != "Offline Only"
+                and replay["p1_rank"] != ""
+                and replay["p2_rank"] != ""
+                and (
+                    (
+                        replay["p1_name"] == name
+                        and (
+                            ranks.index(replay["p1_rank"])
+                            not in range(lower_bound, higher_bound)
+                            or ranks.index(replay["p2_rank"])
+                            not in range(opponent_lower_bound, opponent_higher_bound)
+                        )
+                    )
+                    or (
+                        replay["p2_name"] == name
+                        and (
+                            ranks.index(replay["p1_rank"])
+                            not in range(opponent_lower_bound, opponent_higher_bound)
+                            or ranks.index(replay["p2_rank"])
+                            not in range(lower_bound, higher_bound)
+                        )
+                    )
+                )
+            ):
+                continue
+            if replay_type != "Offline Only":
+                if replay["p1_name"] == name and replay["winner"] == 1:
+                    _, wins, games = data[replay["p1_char"]][
+                        character_array.index(replay["p2_char"])
+                    ]
+                    data[replay["p1_char"]][
+                        character_array.index(replay["p2_char"])
+                    ] = (
+                        replay["p2_char"],
+                        wins + 1,
+                        games + 1,
+                    )
+                elif replay["p1_name"] == name and replay["winner"] != 1:
+                    _, wins, games = data[replay["p1_char"]][
+                        character_array.index(replay["p2_char"])
+                    ]
+                    data[replay["p1_char"]][
+                        character_array.index(replay["p2_char"])
+                    ] = (
+                        replay["p2_char"],
+                        wins,
+                        games + 1,
+                    )
+                elif replay["p2_name"] == name and replay["winner"] == 2:
+                    _, wins, games = data[replay["p2_char"]][
+                        character_array.index(replay["p1_char"])
+                    ]
+                    data[replay["p2_char"]][
+                        character_array.index(replay["p1_char"])
+                    ] = (
+                        replay["p1_char"],
+                        wins + 1,
+                        games + 1,
+                    )
+                elif replay["p2_name"] == name and replay["winner"] != 2:
+                    _, wins, games = data[replay["p2_char"]][
+                        character_array.index(replay["p1_char"])
+                    ]
+                    data[replay["p2_char"]][
+                        character_array.index(replay["p1_char"])
+                    ] = (
+                        replay["p1_char"],
+                        wins,
+                        games + 1,
+                    )
+        else:
+            if (
+                replay_type != "Offline Only"
+                and replay["p1_rank"] != ""
+                and replay["p2_rank"] != ""
+                and (
+                    (
+                        replay["p1_name"] == name
+                        and replay["p2_name"] == opponent
+                        and (
+                            ranks.index(replay["p1_rank"])
+                            not in range(lower_bound, higher_bound)
+                            or ranks.index(replay["p2_rank"])
+                            not in range(opponent_lower_bound, opponent_higher_bound)
+                        )
+                    )
+                    or (
+                        replay["p1_name"] == opponent
+                        and replay["p2_name"] == name
+                        and (
+                            ranks.index(replay["p1_rank"])
+                            not in range(opponent_lower_bound, opponent_higher_bound)
+                            or ranks.index(replay["p2_rank"])
+                            not in range(lower_bound, higher_bound)
+                        )
+                    )
+                )
+            ):
+                continue
+            if replay_type != "Offline Only":
+                if (
                     replay["p1_name"] == name
-                    and (
-                        ranks.index(replay["p1_rank"])
-                        not in range(lower_bound, higher_bound)
-                        or ranks.index(replay["p2_rank"])
-                        not in range(opponent_lower_bound, opponent_higher_bound)
+                    and replay["p2_name"] == opponent
+                    and replay["winner"] == 1
+                ):
+                    _, wins, games = data[replay["p1_char"]][
+                        character_array.index(replay["p2_char"])
+                    ]
+                    data[replay["p1_char"]][
+                        character_array.index(replay["p2_char"])
+                    ] = (
+                        replay["p2_char"],
+                        wins + 1,
+                        games + 1,
                     )
-                )
-                or (
-                    replay["p2_name"] == name
-                    and (
-                        ranks.index(replay["p1_rank"])
-                        not in range(opponent_lower_bound, opponent_higher_bound)
-                        or ranks.index(replay["p2_rank"])
-                        not in range(lower_bound, higher_bound)
+                elif (
+                    replay["p1_name"] == name
+                    and replay["p2_name"] == opponent
+                    and replay["winner"] != 1
+                ):
+                    _, wins, games = data[replay["p1_char"]][
+                        character_array.index(replay["p2_char"])
+                    ]
+                    data[replay["p1_char"]][
+                        character_array.index(replay["p2_char"])
+                    ] = (
+                        replay["p2_char"],
+                        wins,
+                        games + 1,
                     )
-                )
-            )
-        ):
-            continue
-        if replay_type != "Offline Only":
-            if replay["p1_name"] == name and replay["winner"] == 1:
-                _, wins, games = data[replay["p1_char"]][
-                    character_array.index(replay["p2_char"])
-                ]
-                data[replay["p1_char"]][character_array.index(replay["p2_char"])] = (
-                    replay["p2_char"],
-                    wins + 1,
-                    games + 1,
-                )
-            elif replay["p1_name"] == name and replay["winner"] != 1:
-                _, wins, games = data[replay["p1_char"]][
-                    character_array.index(replay["p2_char"])
-                ]
-                data[replay["p1_char"]][character_array.index(replay["p2_char"])] = (
-                    replay["p2_char"],
-                    wins,
-                    games + 1,
-                )
-            elif replay["p2_name"] == name and replay["winner"] == 2:
-                _, wins, games = data[replay["p2_char"]][
-                    character_array.index(replay["p1_char"])
-                ]
-                data[replay["p2_char"]][character_array.index(replay["p1_char"])] = (
-                    replay["p1_char"],
-                    wins + 1,
-                    games + 1,
-                )
-            elif replay["p2_name"] == name and replay["winner"] != 2:
-                _, wins, games = data[replay["p2_char"]][
-                    character_array.index(replay["p1_char"])
-                ]
-                data[replay["p2_char"]][character_array.index(replay["p1_char"])] = (
-                    replay["p1_char"],
-                    wins,
-                    games + 1,
-                )
+                elif (
+                    replay["p1_name"] == opponent
+                    and replay["p2_name"] == name
+                    and replay["winner"] == 2
+                ):
+                    _, wins, games = data[replay["p2_char"]][
+                        character_array.index(replay["p1_char"])
+                    ]
+                    data[replay["p2_char"]][
+                        character_array.index(replay["p1_char"])
+                    ] = (
+                        replay["p1_char"],
+                        wins + 1,
+                        games + 1,
+                    )
+                elif (
+                    replay["p1_name"] == opponent
+                    and replay["p2_name"] == name
+                    and replay["winner"] != 2
+                ):
+                    _, wins, games = data[replay["p2_char"]][
+                        character_array.index(replay["p1_char"])
+                    ]
+                    data[replay["p2_char"]][
+                        character_array.index(replay["p1_char"])
+                    ] = (
+                        replay["p1_char"],
+                        wins,
+                        games + 1,
+                    )
     for i in range(len(data)):
         for j in range(len(data[character_array[i]])):
             char, wins, games = data[character_array[i]][j]
@@ -572,6 +671,7 @@ def analyze_replays(
             replays,
             character_array,
             name,
+            opponent,
             character.get(),
             ax,
             canvas,
@@ -588,6 +688,7 @@ def analyze_replays(
             replays,
             character_array,
             name,
+            opponent,
             character.get(),
             ax,
             canvas,
@@ -604,6 +705,7 @@ def analyze_replays(
             replays,
             character_array,
             name,
+            opponent,
             character.get(),
             ax,
             canvas,
@@ -620,6 +722,7 @@ def analyze_replays(
             replays,
             character_array,
             name,
+            opponent,
             replay_type_selection.value_selected,
             int(user_rank.val[0]),
             int(user_rank.val[1]),
@@ -639,6 +742,7 @@ def analyze_replays(
                 replays,
                 character_array,
                 name,
+                opponent,
                 replay_type_selection.value_selected,
                 int(user_rank.val[0]),
                 int(user_rank.val[1]),
@@ -661,6 +765,7 @@ def analyze_replays(
                 replays,
                 character_array,
                 name,
+                opponent,
                 replay_type_selection.value_selected,
                 int(user_rank.val[0]),
                 int(user_rank.val[1]),
@@ -683,6 +788,7 @@ def analyze_replays(
                 replays,
                 character_array,
                 name,
+                opponent,
                 replay_type_selection.value_selected,
                 int(user_rank.val[0]),
                 int(user_rank.val[1]),
@@ -840,7 +946,7 @@ def partial_parse_metadata(
     _ = replay.seek(0, 0)
     if (
         replay.read(12) != b"\x47\x47\x52\x02\x51\xad\xee\x77\x45\xd7\x48\xcd"
-    ):  # Check if .ggr file has the correct replay header (GGR[\x02]Q[\xAD]îwE×HÍ)
+    ):  # Check if .ggr file has the correct header (GGR[\x02]Q[\xAD]îwE×HÍ)
         corrupt_replays += "\n" + replay_file_path[len(folder) + 1 :]
         raise ValueError
     for label, data in metadata_dictionary.items():
@@ -851,12 +957,12 @@ def partial_parse_metadata(
             number = int.from_bytes((replay.read(int(data[1] / 8))), "little")
         match label:
             case "p1 rank":
-                if parsedDict["p2_name"] is None:  # check if the match was offline
+                if parsedDict["p2_name"] == "":  # check if the match was offline
                     parsedDict["p1_rank"] = ""
                 else:
                     parsedDict["p1_rank"] = ranks[number]
             case "p2 rank":
-                if parsedDict["p2_name"] is None:
+                if parsedDict["p2_name"] == "":
                     parsedDict["p2_rank"] = ""
                 else:
                     parsedDict["p2_rank"] = ranks[number]
@@ -933,7 +1039,7 @@ def parse_metadata(
     _ = replay.seek(0, 0)
     if (
         replay.read(12) != b"\x47\x47\x52\x02\x51\xad\xee\x77\x45\xd7\x48\xcd"
-    ):  # Check if .ggr file has the correct replay header (GGR[\x02]Q[\xAD]îwE×HÍ)
+    ):  # Check if .ggr file has the correct header (GGR[\x02]Q[\xAD]îwE×HÍ)
         corrupt_replays += "\n" + replay_file_path[len(folder) + 1 :]
         raise ValueError
     for label, data in metadata_dictionary.items():
@@ -962,16 +1068,16 @@ def parse_metadata(
                 parsed_dict["date"] = date
             case "p1 rank":
                 if (
-                    parsed_dict["player2"]["name"] is None
+                    parsed_dict["player2"]["name"] == ""
                 ):  # check if the match was offline
-                    parsed_dict["player1"]["rank"] = None
+                    parsed_dict["player1"]["rank"] = ""
                 else:
                     parsed_dict["player1"]["rank"] = ranks[number]
             case "p2 rank":
                 if (
-                    parsed_dict["player2"]["name"] is None
+                    parsed_dict["player2"]["name"] == ""
                 ):  # same as above, both should be player 2
-                    parsed_dict["player2"]["rank"] = None
+                    parsed_dict["player2"]["rank"] = ""
                 else:
                     parsed_dict["player2"]["rank"] = ranks[number]
             case "ex chars?":
@@ -1117,7 +1223,13 @@ def main() -> None:
     folder_button: Button = Button(root, text="Select Folder", command=select_folder)
     folder_button.grid(row=2, column=2, sticky="e")
     one_folder_dump_status = IntVar()
-    one_folder_dump: Checkbutton = Checkbutton(root, text="Dump all JSONs into one folder", variable=one_folder_dump_status, onvalue=1, offvalue=0)
+    one_folder_dump: Checkbutton = Checkbutton(
+        root,
+        text="Dump all JSONs into one folder",
+        variable=one_folder_dump_status,
+        onvalue=1,
+        offvalue=0,
+    )
     one_folder_dump.grid(row=3, column=0, sticky="w")
     sort_button: Button = Button(
         root,
