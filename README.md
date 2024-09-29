@@ -26,7 +26,7 @@ The “JSON-ify Replays” button will make a JSON out of every file in the repl
 
 ### Replay Analysis
 
-The “Analyze Replays” button opens a second window showing a scatter plot for a given character (defaults to Sol). Select your character with the dropdown at the top left.
+The “Analyze Replays” button opens a second window showing a scatter plot for a given character (defaults to Sol). Select your character with the dropdown at the top left. If a character is missing from any graph, that’s because there are no replays with the user against that character.
 
 Hovering over any point on the scatter plot will display further details about matchup win rates and number of matches played.
 
