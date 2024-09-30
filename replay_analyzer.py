@@ -203,7 +203,10 @@ def scatter_plot(
     global colors, annot, opponent
     ax.clear()
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Spread for {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
+    _ = ax.set_title(
+        f"Matchup Spread for {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}",
+        fontsize=26 if opponent.get() == "" else 14,
+    )
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.set_ylabel("Number of Matches", fontsize=18)
     characters: list[str] = []
@@ -267,7 +270,10 @@ def matchups_bar_graph(
         range(len(characters)), winrates, tick_label=characters, color=colors_visible
     )
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Win Rates as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
+    _ = ax.set_title(
+        f"Matchup Win Rates as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}",
+        fontsize=26 if opponent.get() == "" else 14,
+    )
     _ = ax.set_ylabel("Character", fontsize=18)
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
@@ -305,7 +311,10 @@ def matchups_bar_graph_sorted(
         color=color_list,
     )
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Win Rates as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
+    _ = ax.set_title(
+        f"Matchup Win Rates as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}",
+        fontsize=26 if opponent.get() == "" else 14,
+    )
     _ = ax.set_ylabel("Character", fontsize=18)
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
@@ -337,7 +346,10 @@ def no_of_matches_bar_graph(
     bars: BarContainer = ax.barh(
         range(len(characters)), gameAmounts, tick_label=characters, color=colors_visible
     )
-    _ = ax.set_title(f"Number of Matches as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
+    _ = ax.set_title(
+        f"Number of Matches as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}",
+        fontsize=26 if opponent.get() == "" else 14,
+    )
     _ = ax.set_ylabel("Character", fontsize=18)
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, padding=2)
@@ -374,7 +386,10 @@ def no_of_matches_bar_graph_sorted(
         tick_label=list(pairs.keys()),
         color=color_list,
     )
-    _ = ax.set_title(f"Number of Matches as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
+    _ = ax.set_title(
+        f"Number of Matches as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}",
+        fontsize=26 if opponent.get() == "" else 14,
+    )
     _ = ax.set_ylabel("Character", fontsize=18)
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, padding=2)
@@ -631,8 +646,22 @@ def analyze_replays(
             )
         except ValueError:
             continue
-    if len(corrupt_replays) != 0:
+    if name == "":
         _ = messagebox.showerror(
+            "Enter Username",
+            "Please enter a username.",
+        )
+        return
+    if all(
+        replay["p1_name"] != name and replay["p2_name"] != name for replay in replays
+    ):
+        _ = messagebox.showerror(
+            "User Not Found in Replays",
+            f"A user with the name {name} could not be found in the replays given, please check your spelling and try again.",
+        )
+        return
+    if len(corrupt_replays) != 0:
+        _ = messagebox.showwarning(
             "Corrupt Replays",
             f"The following replays are corrupt:{corrupt_replays}\nThe non-corrupt replays have successfully been analyzed.",
         )
