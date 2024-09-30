@@ -24,12 +24,12 @@ from tkinter import (
 )
 from typing import Any
 
-from matplotlib.pyplot import subplots
 from matplotlib.axes import Axes
 from matplotlib.backend_bases import MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.collections import PathCollection
 from matplotlib.container import BarContainer
+from matplotlib.pyplot import subplots
 from matplotlib.text import Annotation
 from matplotlib.widgets import RadioButtons, RangeSlider
 
@@ -42,6 +42,8 @@ replay_type_selection: RadioButtons
 one_folder_dump_status: IntVar
 
 sort_button: Button
+
+opponent: Entry
 
 ranks: list[str] = [
     "Civilian",
@@ -101,7 +103,7 @@ def update_replays(
     replays: list[dict[str, Any]],
     character_array: list[str],
     name: str,
-    opponent: str,
+    opponent_name: str,
     character: str,
     ax: Axes,
     canvas: FigureCanvasTkAgg,
@@ -115,7 +117,7 @@ def update_replays(
         replays,
         character_array,
         name,
-        opponent,
+        opponent_name,
         replay_type,
         user_lower,
         user_higher,
@@ -198,10 +200,10 @@ def scatter_plot(
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
-    global colors, annot
+    global colors, annot, opponent
     ax.clear()
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Spread for {character}", fontsize=26)
+    _ = ax.set_title(f"Matchup Spread for {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.set_ylabel("Number of Matches", fontsize=18)
     characters: list[str] = []
@@ -246,7 +248,7 @@ def matchups_bar_graph(
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
-    global colors
+    global colors, opponent
     characters: list[str] = []
     winrates: list[float] = []
     colors_visible: list[str] = []
@@ -265,7 +267,7 @@ def matchups_bar_graph(
         range(len(characters)), winrates, tick_label=characters, color=colors_visible
     )
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=26)
+    _ = ax.set_title(f"Matchup Win Rates as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
     _ = ax.set_ylabel("Character", fontsize=18)
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
@@ -279,7 +281,7 @@ def matchups_bar_graph_sorted(
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
-    global colors
+    global colors, opponent
     pairs: dict[str, float] = {}
     color_pairs: dict[str, str] = {}
     for i in range(len(data[character])):
@@ -303,7 +305,7 @@ def matchups_bar_graph_sorted(
         color=color_list,
     )
     _ = ax.set_xlim(0.0, 10.0)
-    _ = ax.set_title(f"Matchup Win Rates as {character}", fontsize=26)
+    _ = ax.set_title(f"Matchup Win Rates as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
     _ = ax.set_ylabel("Character", fontsize=18)
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, fmt=lambda x: f"{x:.1f}:{(10-x):.1f}", padding=2)
@@ -317,7 +319,7 @@ def no_of_matches_bar_graph(
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
-    global colors
+    global colors, opponent
     characters: list[str] = []
     gameAmounts: list[int] = []
     colors_visible: list[str] = []
@@ -335,7 +337,7 @@ def no_of_matches_bar_graph(
     bars: BarContainer = ax.barh(
         range(len(characters)), gameAmounts, tick_label=characters, color=colors_visible
     )
-    _ = ax.set_title(f"Number of Matches as {character}", fontsize=26)
+    _ = ax.set_title(f"Number of Matches as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
     _ = ax.set_ylabel("Character", fontsize=18)
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, padding=2)
@@ -349,7 +351,7 @@ def no_of_matches_bar_graph_sorted(
     ax: Axes,
     canvas: FigureCanvasTkAgg,
 ) -> None:
-    global colors
+    global colors, opponent
     pairs: dict[str, float] = {}
     color_pairs: dict[str, str] = {}
     for i in range(len(data[character])):
@@ -372,7 +374,7 @@ def no_of_matches_bar_graph_sorted(
         tick_label=list(pairs.keys()),
         color=color_list,
     )
-    _ = ax.set_title(f"Number of Matches as {character}", fontsize=26)
+    _ = ax.set_title(f"Number of Matches as {character if opponent.get() == '' else character + '\nAgainst ' + opponent.get()}", fontsize=26)
     _ = ax.set_ylabel("Character", fontsize=18)
     _ = ax.set_xlabel("Win Rate", fontsize=18)
     _ = ax.bar_label(bars, padding=2)
@@ -384,7 +386,7 @@ def filter_replays(
     replays: list[dict[str, Any]],
     character_array: list[str],
     name: str,
-    opponent: str,
+    opponent_name: str,
     replay_type: str,
     lower_bound: int = 0,
     higher_bound: int = 20,
@@ -434,7 +436,7 @@ def filter_replays(
                     games + 1,
                 )
             continue
-        if opponent == "":
+        if opponent_name == "":
             if (
                 replay_type != "Offline Only"
                 and replay["p1_rank"] != ""
@@ -514,7 +516,7 @@ def filter_replays(
                 and (
                     (
                         replay["p1_name"] == name
-                        and replay["p2_name"] == opponent
+                        and replay["p2_name"] == opponent_name
                         and (
                             ranks.index(replay["p1_rank"])
                             not in range(lower_bound, higher_bound)
@@ -523,7 +525,7 @@ def filter_replays(
                         )
                     )
                     or (
-                        replay["p1_name"] == opponent
+                        replay["p1_name"] == opponent_name
                         and replay["p2_name"] == name
                         and (
                             ranks.index(replay["p1_rank"])
@@ -538,7 +540,7 @@ def filter_replays(
             if replay_type != "Offline Only":
                 if (
                     replay["p1_name"] == name
-                    and replay["p2_name"] == opponent
+                    and replay["p2_name"] == opponent_name
                     and replay["winner"] == 1
                 ):
                     _, wins, games = data[replay["p1_char"]][
@@ -553,7 +555,7 @@ def filter_replays(
                     )
                 elif (
                     replay["p1_name"] == name
-                    and replay["p2_name"] == opponent
+                    and replay["p2_name"] == opponent_name
                     and replay["winner"] != 1
                 ):
                     _, wins, games = data[replay["p1_char"]][
@@ -567,7 +569,7 @@ def filter_replays(
                         games + 1,
                     )
                 elif (
-                    replay["p1_name"] == opponent
+                    replay["p1_name"] == opponent_name
                     and replay["p2_name"] == name
                     and replay["winner"] == 2
                 ):
@@ -582,7 +584,7 @@ def filter_replays(
                         games + 1,
                     )
                 elif (
-                    replay["p1_name"] == opponent
+                    replay["p1_name"] == opponent_name
                     and replay["p2_name"] == name
                     and replay["winner"] != 2
                 ):
@@ -609,7 +611,7 @@ def analyze_replays(
     character_array: list[str],
     metadata_dictionary: dict[str, tuple[int, int]],
     name: str,
-    opponent: str,
+    opponent_name: str,
     root: Tk,
 ) -> None:
     """
@@ -679,7 +681,7 @@ def analyze_replays(
             replays,
             character_array,
             name,
-            opponent,
+            opponent_name,
             character.get(),
             ax,
             canvas,
@@ -713,7 +715,7 @@ def analyze_replays(
             replays,
             character_array,
             name,
-            opponent,
+            opponent_name,
             character.get(),
             ax,
             canvas,
@@ -730,7 +732,7 @@ def analyze_replays(
             replays,
             character_array,
             name,
-            opponent,
+            opponent_name,
             replay_type_selection.value_selected,
             int(user_rank.val[0]),
             int(user_rank.val[1]),
@@ -750,7 +752,7 @@ def analyze_replays(
                 replays,
                 character_array,
                 name,
-                opponent,
+                opponent_name,
                 replay_type_selection.value_selected,
                 int(user_rank.val[0]),
                 int(user_rank.val[1]),
@@ -773,7 +775,7 @@ def analyze_replays(
                 replays,
                 character_array,
                 name,
-                opponent,
+                opponent_name,
                 replay_type_selection.value_selected,
                 int(user_rank.val[0]),
                 int(user_rank.val[1]),
@@ -796,7 +798,7 @@ def analyze_replays(
                 replays,
                 character_array,
                 name,
-                opponent,
+                opponent_name,
                 replay_type_selection.value_selected,
                 int(user_rank.val[0]),
                 int(user_rank.val[1]),
@@ -1164,7 +1166,7 @@ def main() -> None:
     """
     Main functionality.
     """
-    global folder, sliders, one_folder_dump_status
+    global folder, sliders, one_folder_dump_status, opponent
     metadata_dictionary: dict[str, tuple[int, int]] = {
         "year": (0x1A, 16),
         "month": (0x1C, 8),
@@ -1232,7 +1234,7 @@ def main() -> None:
         root, text="Please enter an opponent's\nusername (optional)."
     )
     opponent_text.grid(row=1, column=0, sticky="we")
-    opponent: Entry = Entry(root)
+    opponent = Entry(root)
     opponent.grid(row=1, column=1, sticky="we", padx=(0, 15), pady=(15, 0))
     folder_text: Label = Label(root, text="Please select a folder.")
     folder_text.grid(row=2, column=0, sticky="we")
