@@ -633,6 +633,12 @@ def analyze_replays(
     Opens a new window to graph replays.
     """
     global view_type, is_sorted, sliders, replay_type_selection, sort_button
+    if replay_folder_path == "":
+        _ = messagebox.showerror(
+            "Select Folder",
+            "Please select a folder.",
+        )
+        return
     replays: list[dict[str, Any]] = []
     slash: str = "\\" if system() == "Windows" else "/"
     for file in glob(f"{replay_folder_path}{slash}**{slash}*.ggr", recursive=True):

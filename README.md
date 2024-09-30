@@ -16,7 +16,7 @@ The only file that has to be downloaded from this repo is [replay_analyzer.py](r
 
 Simply enter your username, select the folder with the replays (the app should go to the correct one by default), and click either of the buttons at the bottom. Optionally, enter a second player’s name to filter for replays only between you and them.
 
-Selecting a folder is not necessary unless your replays are not in the default folder (On Windows: C:\Users\\(your username)\Documents\ARC SYSTEM WORKS\GGXXAC\Replays\\), but opening the folder selector and closing it without selecting anything will yield an empty path as the selected folder and will result in an empty JSONs folder and blank graphs.
+Selecting a folder is not necessary unless your replays are not in the default folder (On Windows: C:\Users\\(your username)\Documents\ARC SYSTEM WORKS\GGXXAC\Replays\\), but opening the folder selector and closing it without selecting anything will yield an empty path as the selected folder, and the program will prompt the user to select a folder.
 
 If a file does not have the proper heading for a +R replay, it will be marked as corrupt and skipped. The program will warn the user of any corrupt replays before converting the non-corrupt replays to JSONs/analyzing the non-corrupt replays.
 
