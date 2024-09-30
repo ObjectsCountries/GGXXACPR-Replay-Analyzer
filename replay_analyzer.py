@@ -951,7 +951,7 @@ def jsonify_replays(
                 ) as f:
                     dump(data, f, ensure_ascii=False, indent=4)
     if len(corrupt_replays) != 0:
-        _ = messagebox.showerror(
+        _ = messagebox.showwarning(
             "Corrupt Replays",
             f"The following replays are corrupt:{corrupt_replays}\nThe non-corrupt replays have successfully been made into JSONs.",
         )
