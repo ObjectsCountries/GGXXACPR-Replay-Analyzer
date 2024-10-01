@@ -34,7 +34,11 @@ try:
     from matplotlib.text import Annotation
     from matplotlib.widgets import RadioButtons, RangeSlider
 except ImportError:
-    mpl_command: str = "py -m pip install matplotlib" if system() == "Windows" else "python3 -m pip install matplotlib"
+    mpl_command: str = (
+        "py -m pip install matplotlib"
+        if system() == "Windows"
+        else "python3 -m pip install matplotlib"
+    )
     _ = messagebox.showerror(
         "Matplotlib Missing",
         f"Matplotlib, the backend used to render the graphs, is not installed; please install it with the instructions here:\nhttps://matplotlib.org/stable/install/index.html\nAlternatively, run “{mpl_command}” from the command line.",
@@ -77,33 +81,34 @@ ranks: list[str] = [
     "Legend",
 ]
 
-colors: list[str] = [
-    "#b34230",
-    "#3c5685",
-    "#ff8c2c",
-    "#ecc966",
-    "#bc283c",
-    "#836448",
-    "#586060",
-    "#474040",
-    "#f35460",
-    "#b9764c",
-    "#302838",
-    "#d73c38",
-    "#263c68",
-    "#181818",
-    "#0d55c7",
-    "#486880",
-    "#8c3c00",
-    "#e03048",
-    "#4a4a4a",
-    "#3b64c7",
-    "#538681",
-    "#a6390e",
-    "#64271e",
-    "#cda583",
-    "#128cd0",
-]
+
+colors: dict[str, str] = {
+    "Sol": "#b34230",
+    "Ky": "#3c5685",
+    "May": "#ff8c2c",
+    "Millia": "#ecc966",
+    "Axl": "#bc283c",
+    "Potemkin": "#836448",
+    "Chipp": "#586060",
+    "Eddie": "#474040",
+    "Baiken": "#f35460",
+    "Faust": "#b9764c",
+    "Testament": "#302838",
+    "Jam": "#d73c38",
+    "Anji": "#263c68",
+    "Johnny": "#181818",
+    "Venom": "#0d55c7",
+    "Dizzy": "#486880",
+    "Slayer": "#8c3c00",
+    "I-No": "#e03048",
+    "Zappa": "#4a4a4a",
+    "Bridget": "#3b64c7",
+    "Robo-Ky": "#538681",
+    "A.B.A": "#a6390e",
+    "Order Sol": "#64271e",
+    "Kliff": "#cda583",
+    "Justice": "#128cd0",
+}
 
 
 def update_replays(
@@ -142,7 +147,6 @@ def hover(
     sc: PathCollection,
     winrates: list[float],
     games: list[int],
-    colors: list[str],
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
 ):
@@ -151,7 +155,7 @@ def hover(
     if event.inaxes == ax:
         cont, ind = sc.contains(event)
         if cont:
-            update_annot(ind, sc, winrates, games, colors, character, data)
+            update_annot(ind, sc, winrates, games, character, data)
             annot.set_visible(True)
             canvas.draw_idle()
         else:
@@ -165,11 +169,10 @@ def update_annot(
     sc: PathCollection,
     winrates: list[float],
     games: list[int],
-    colors: list[str],
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
 ):
-    global annot
+    global annot, colors
     pos: tuple[float, float] = sc.get_offsets()[ind["ind"][0]]
     shared_points: list[str] = [
         value[0]
@@ -185,7 +188,7 @@ def update_annot(
         "Match" if games[ind["ind"][0]] == 1 else "Matches",
     )
     _ = annot.set(text=text)
-    _ = annot.get_bbox_patch().set(alpha=0.6, color=colors[ind["ind"][0]])
+    _ = annot.get_bbox_patch().set(alpha=0.6, color=colors[shared_points[0]])
 
 
 class View(Enum):
@@ -243,7 +246,7 @@ def scatter_plot(
                 textcoords="offset points",
                 fontsize=13,
             )
-            colors_visible.append(colors[i])
+            colors_visible.append(colors[char_tuple[0]])
     annot = ax.annotate(
         text="",
         xy=(0, 0),
@@ -264,7 +267,6 @@ def scatter_plot(
             scatter,
             winrates,
             game_amounts,
-            colors_visible,
             character,
             data,
         ),
@@ -287,7 +289,7 @@ def matchups_bar_graph(
         if char_tuple[2] != 0:
             characters.append(char_tuple[0])
             winrates.append(char_tuple[1])
-            colors_visible.append(colors[i])
+            colors_visible.append(colors[char_tuple[0]])
     if len(winrates) != 0:
         characters.append("Average")
         winrates.append(sum(winrates) / len(winrates))
@@ -364,7 +366,7 @@ def no_of_matches_bar_graph(
         if char_tuple[2] != 0:
             characters.append(char_tuple[0])
             gameAmounts.append(char_tuple[2])
-            colors_visible.append(colors[i])
+            colors_visible.append(colors[char_tuple[0]])
     if len(gameAmounts) != 0:
         characters.append("Average")
         gameAmounts.append(round(sum(gameAmounts) / len(gameAmounts)))
@@ -397,7 +399,7 @@ def no_of_matches_bar_graph_sorted(
         char_tuple: tuple[str, float, int] = data[character][i]
         if char_tuple[2] != 0:
             pairs[char_tuple[0]] = char_tuple[2]
-            color_pairs[data[character][i][0]] = colors[i]
+            color_pairs[data[character][i][0]] = colors[char_tuple[0]]
     color_list: list[str] = [
         color_pairs[k]
         for k, _ in sorted(pairs.items(), key=lambda item: item[1], reverse=True)
