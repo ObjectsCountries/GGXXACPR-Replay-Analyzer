@@ -24,15 +24,21 @@ from tkinter import (
 )
 from typing import Any
 
-from matplotlib.axes import Axes
-from matplotlib.backend_bases import MouseEvent
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.collections import PathCollection
-from matplotlib.container import BarContainer
-from matplotlib.pyplot import subplots
-from matplotlib.text import Annotation
-from matplotlib.widgets import RadioButtons, RangeSlider
-
+try:
+    from matplotlib.axes import Axes
+    from matplotlib.backend_bases import MouseEvent
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+    from matplotlib.collections import PathCollection
+    from matplotlib.container import BarContainer
+    from matplotlib.pyplot import subplots
+    from matplotlib.text import Annotation
+    from matplotlib.widgets import RadioButtons, RangeSlider
+except ImportError:
+    _ = messagebox.showerror(
+        "Matplotlib Missing",
+        "Matplotlib is not installed, please install it from here: https://matplotlib.org/stable/install/index.html",
+    )
+    exit(1)
 
 sliders: list[RangeSlider] = []
 
@@ -651,7 +657,13 @@ def analyze_replays(
     """
     Opens a new window to graph replays.
     """
-    global view_type, is_sorted, sliders, replay_type_selection, sort_button, corrupt_replays
+    global \
+        view_type, \
+        is_sorted, \
+        sliders, \
+        replay_type_selection, \
+        sort_button, \
+        corrupt_replays
     character_array_copy: list[str] = [
         "Sol",
         "Ky",
@@ -683,6 +695,7 @@ def analyze_replays(
         _ = messagebox.showerror(
             "Select Folder",
             "Please select a folder.",
+            parent=root,
         )
         return
     replays: list[dict[str, Any]] = []
@@ -703,6 +716,7 @@ def analyze_replays(
         _ = messagebox.showerror(
             "No Replays Found",
             "No replays could be found in the selected folder. Please select a different folder and try again.",
+            parent=root,
         )
         return
     excluded_characters: list[str] = []
@@ -739,6 +753,7 @@ def analyze_replays(
         _ = messagebox.showerror(
             "Enter Username",
             "Please enter a username.",
+            parent=root,
         )
         return
     if all(
@@ -747,23 +762,27 @@ def analyze_replays(
         _ = messagebox.showerror(
             "User Not Found in Replays",
             f"A user with the name {name} could not be found in the replays given, please check your spelling and try again.",
+            parent=root,
         )
         return
     if len(corrupt_replays) != 0:
         _ = messagebox.showwarning(
             "Corrupt Replays",
             f"The following replays are corrupt:\n{'\n'.join(corrupt_replays)}\nThe non-corrupt replays have successfully been analyzed.",
+            parent=root,
         )
     if len(excluded_characters) != 0:
         if opponent_name == "":
             _ = messagebox.showinfo(
                 "Excluded Characters",
                 f"No replays with {name} as the following characters could be found:\n{', '.join(character for character in excluded_characters)}\nThe rest of the replays have been successfully analyzed.",
+                parent=root,
             )
         else:
             _ = messagebox.showinfo(
                 "Excluded Characters",
                 f"No replays with {name} as the following characters against {opponent_name} could be found:\n{', '.join(character for character in excluded_characters)}\nThe rest of the replays have been successfully analyzed.",
+                parent=root,
             )
     analysis: Toplevel = Toplevel(root)
     analysis.resizable(False, False)
@@ -1013,6 +1032,7 @@ def jsonify_replays(
     replay_folder_path: str,
     character_array: list[str],
     metadata_dictionary: dict[str, tuple[int, int]],
+    root: Tk,
 ) -> None:
     """
     Makes JSONs out of replays.
@@ -1022,6 +1042,7 @@ def jsonify_replays(
         _ = messagebox.showerror(
             "Select Folder",
             "Please select a folder.",
+            parent=root,
         )
         return
     slash: str = "\\" if system() == "Windows" else "/"
@@ -1061,6 +1082,7 @@ def jsonify_replays(
         _ = messagebox.showwarning(
             "Corrupt Replays",
             f"The following replays are corrupt:\n{'\n'.join(corrupt_replays)}\nThe non-corrupt replays have successfully been made into JSONs.",
+            parent=root,
         )
 
 
@@ -1388,7 +1410,9 @@ def main() -> None:
     jsonify_button: Button = Button(
         button_frame,
         text="JSON-ify Replays",
-        command=lambda: jsonify_replays(folder, character_array, metadata_dictionary),
+        command=lambda: jsonify_replays(
+            folder, character_array, metadata_dictionary, root
+        ),
     )
     jsonify_button.grid(row=0, column=0, padx=(0, 40), pady=(0, 10))
     analyze_button: Button = Button(
