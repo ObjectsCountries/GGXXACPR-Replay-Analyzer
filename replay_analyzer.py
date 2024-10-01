@@ -201,7 +201,7 @@ match system():
         folder = f"/home/{getlogin()}/Documents/ARC SYSTEM WORKS/GGXXAC/Replays/"
 is_sorted: bool = False
 view_type: View = View.SCATTER
-corrupt_replays: str = ""
+corrupt_replays: list[str] = []
 
 
 def scatter_plot(
@@ -651,7 +651,7 @@ def analyze_replays(
     """
     Opens a new window to graph replays.
     """
-    global view_type, is_sorted, sliders, replay_type_selection, sort_button
+    global view_type, is_sorted, sliders, replay_type_selection, sort_button, corrupt_replays
     character_array_copy: list[str] = [
         "Sol",
         "Ky",
@@ -696,7 +696,8 @@ def analyze_replays(
                     metadata_dictionary,
                 )
             )
-        except ValueError:
+        except ValueError as corrupt:
+            corrupt_replays.append(str(corrupt))
             continue
     if len(replays) == 0:
         _ = messagebox.showerror(
@@ -751,7 +752,7 @@ def analyze_replays(
     if len(corrupt_replays) != 0:
         _ = messagebox.showwarning(
             "Corrupt Replays",
-            f"The following replays are corrupt:{corrupt_replays}\nThe non-corrupt replays have successfully been analyzed.",
+            f"The following replays are corrupt:\n{'\n'.join(corrupt_replays)}\nThe non-corrupt replays have successfully been analyzed.",
         )
     if len(excluded_characters) != 0:
         if opponent_name == "":
@@ -1033,7 +1034,8 @@ def jsonify_replays(
                 character_array,
                 metadata_dictionary,
             )
-        except ValueError:
+        except ValueError as corrupt:
+            corrupt_replays.append(str(corrupt))
             continue
         else:
             subdirectory: str = file[len(replay_folder_path) + 1 : file.rfind(slash)]
@@ -1058,7 +1060,7 @@ def jsonify_replays(
     if len(corrupt_replays) != 0:
         _ = messagebox.showwarning(
             "Corrupt Replays",
-            f"The following replays are corrupt:{corrupt_replays}\nThe non-corrupt replays have successfully been made into JSONs.",
+            f"The following replays are corrupt:\n{'\n'.join(corrupt_replays)}\nThe non-corrupt replays have successfully been made into JSONs.",
         )
 
 
@@ -1082,7 +1084,7 @@ def partial_parse_metadata(
     """
     Parses only the important replay metadata.
     """
-    global ranks, corrupt_replays
+    global ranks
 
     parsedDict: dict[str, Any] = {
         "p1_name": "",
@@ -1098,8 +1100,7 @@ def partial_parse_metadata(
     if (
         replay.read(12) != b"\x47\x47\x52\x02\x51\xad\xee\x77\x45\xd7\x48\xcd"
     ):  # Check if .ggr file has the correct header (GGR[\x02]Q[\xAD]îwE×HÍ)
-        corrupt_replays += "\n" + replay_file_path[len(folder) + 1 :]
-        raise ValueError
+        raise ValueError(replay_file_path[len(folder) + 1 :])
     for label, data in metadata_dictionary.items():
         _ = replay.seek(data[0], 0)
         if data[1] == 256:
@@ -1156,7 +1157,7 @@ def parse_metadata(
     """
     Parses the replay metadata into a readable format.
     """
-    global ranks, corrupt_replays
+    global ranks
     parsed_dict: dict[str, Any] = {
         "date": "",
         "player1": {
@@ -1191,8 +1192,7 @@ def parse_metadata(
     if (
         replay.read(12) != b"\x47\x47\x52\x02\x51\xad\xee\x77\x45\xd7\x48\xcd"
     ):  # Check if .ggr file has the correct header (GGR[\x02]Q[\xAD]îwE×HÍ)
-        corrupt_replays += "\n" + replay_file_path[len(folder) + 1 :]
-        raise ValueError
+        raise ValueError(replay_file_path[len(folder) + 1 :])
     for label, data in metadata_dictionary.items():
         _ = replay.seek(data[0], 0)
         if data[1] == 256:
@@ -1291,7 +1291,7 @@ def parse_metadata(
             case "p2 char":
                 parsed_dict["player2"]["character"] = character_array[number - 1]
             case _:
-                raise ValueError
+                continue
     replay.close()
     return parsed_dict
 
