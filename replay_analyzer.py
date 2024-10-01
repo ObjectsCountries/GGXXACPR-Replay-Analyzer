@@ -28,11 +28,9 @@ from matplotlib.axes import Axes
 from matplotlib.backend_bases import MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.collections import PathCollection
-from matplotlib.colors import ListedColormap
 from matplotlib.container import BarContainer
-from matplotlib.pyplot import imshow, subplots
+from matplotlib.pyplot import subplots
 from matplotlib.text import Annotation
-from matplotlib.transforms import Bbox
 from matplotlib.widgets import RadioButtons, RangeSlider
 
 
@@ -138,7 +136,6 @@ def hover(
     winrates: list[float],
     games: list[int],
     colors: list[str],
-    characters: list[str],
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
 ):
@@ -148,7 +145,7 @@ def hover(
         cont, ind = sc.contains(event)
         if cont:
             update_annot(
-                ax, ind, sc, winrates, games, colors, characters, character, data
+                ind, sc, winrates, games, colors, character, data
             )
             annot.set_visible(True)
             canvas.draw_idle()
@@ -159,13 +156,11 @@ def hover(
 
 
 def update_annot(
-    ax: Axes,
     ind: dict[str, list[int]],
     sc: PathCollection,
     winrates: list[float],
     games: list[int],
     colors: list[str],
-    characters: list[str],
     character: str,
     data: dict[str, list[tuple[str, float, int]]],
 ):
@@ -265,7 +260,6 @@ def scatter_plot(
             winrates,
             game_amounts,
             colors_visible,
-            characters,
             character,
             data,
         ),
@@ -478,7 +472,6 @@ def filter_replays(
                     wins,
                     games + 1,
                 )
-            continue
         if opponent_name == "":
             if (
                 replay_type != "Offline Only"
