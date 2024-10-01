@@ -38,7 +38,7 @@ The two sliders show the range of online ranks for you (first slider) and your o
 
 ## CLI Scripts
 
-The original CLI Scripts (courtesy of @joefish. and @izyb on Discord) can be found in the [CLI Scripts](CLI%20Scripts) folder. [usingOrganizeReplaysMetaData.docx](CLI%20Scripts/usingOrganizeReplaysMetaData.docx?raw=1) and [howToUseReplayStats.txt](CLI%20Scripts/howToUseReplayStats.txt) have been converted to Markdown and combined into a single [README.md](CLI%20Scripts/README.md) file, whereas the Python scripts are unaltered.
+The original CLI Scripts (courtesy of @joefish. and @izyb on Discord) can be found in the [CLI Scripts](CLI%20Scripts) folder. usingOrganizeReplaysMetaData.docx and howToUseReplayStats.txt have been converted to Markdown and combined into a single [README.md](CLI%20Scripts/README.md) file, whereas the Python scripts are unaltered.
 
 ## Contributing
 
