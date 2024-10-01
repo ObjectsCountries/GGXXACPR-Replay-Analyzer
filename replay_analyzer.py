@@ -28,10 +28,13 @@ from matplotlib.axes import Axes
 from matplotlib.backend_bases import MouseEvent
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.collections import PathCollection
+from matplotlib.colors import ListedColormap
 from matplotlib.container import BarContainer
-from matplotlib.pyplot import subplots
+from matplotlib.pyplot import imshow, subplots
 from matplotlib.text import Annotation
+from matplotlib.transforms import Bbox
 from matplotlib.widgets import RadioButtons, RangeSlider
+
 
 sliders: list[RangeSlider] = []
 
@@ -135,13 +138,18 @@ def hover(
     winrates: list[float],
     games: list[int],
     colors: list[str],
+    characters: list[str],
+    character: str,
+    data: dict[str, list[tuple[str, float, int]]],
 ):
     global annot
     vis = annot.get_visible()
     if event.inaxes == ax:
         cont, ind = sc.contains(event)
         if cont:
-            update_annot(ind, sc, winrates, games, colors)
+            update_annot(
+                ax, ind, sc, winrates, games, colors, characters, character, data
+            )
             annot.set_visible(True)
             canvas.draw_idle()
         else:
@@ -151,24 +159,33 @@ def hover(
 
 
 def update_annot(
+    ax: Axes,
     ind: dict[str, list[int]],
     sc: PathCollection,
     winrates: list[float],
     games: list[int],
     colors: list[str],
+    characters: list[str],
+    character: str,
+    data: dict[str, list[tuple[str, float, int]]],
 ):
     global annot
     pos: tuple[float, float] = sc.get_offsets()[ind["ind"][0]]
+    shared_points: list[str] = [
+        value[0]
+        for value in data[character]
+        if value[1] == winrates[ind["ind"][0]] and value[2] == games[ind["ind"][0]]
+    ]
     annot.xy = pos
-    text = "{}:{}\n{} {}".format(
-        f"{winrates[ind["ind"][0]]:.1f}",
-        f"{(10 - winrates[ind["ind"][0]]):.1f}",
+    text = "{}\n{}:{}\n{} {}".format(
+        f"{', '.join(shared_points) if len(shared_points) > 1 else shared_points[0]}",
+        f"{winrates[ind['ind'][0]]:.1f}",
+        f"{(10 - winrates[ind['ind'][0]]):.1f}",
         games[ind["ind"][0]],
         "Match" if games[ind["ind"][0]] == 1 else "Matches",
     )
-    annot.set_text(text)
-    annot.get_bbox_patch().set_color(colors[ind["ind"][0]])
-    annot.get_bbox_patch().set_alpha(0.6)
+    _ = annot.set(text=text)
+    _ = annot.get_bbox_patch().set(alpha=0.6, color=colors[ind["ind"][0]])
 
 
 class View(Enum):
@@ -240,7 +257,18 @@ def scatter_plot(
     )
     _ = canvas.mpl_connect(
         "motion_notify_event",
-        lambda e: hover(e, canvas, ax, scatter, winrates, game_amounts, colors_visible),
+        lambda e: hover(
+            e,
+            canvas,
+            ax,
+            scatter,
+            winrates,
+            game_amounts,
+            colors_visible,
+            characters,
+            character,
+            data,
+        ),
     )
     canvas.draw()
 
@@ -633,6 +661,33 @@ def analyze_replays(
     Opens a new window to graph replays.
     """
     global view_type, is_sorted, sliders, replay_type_selection, sort_button
+    character_array_copy: list[str] = [
+        "Sol",
+        "Ky",
+        "May",
+        "Millia",
+        "Axl",
+        "Potemkin",
+        "Chipp",
+        "Eddie",
+        "Baiken",
+        "Faust",
+        "Testament",
+        "Jam",
+        "Anji",
+        "Johnny",
+        "Venom",
+        "Dizzy",
+        "Slayer",
+        "I-No",
+        "Zappa",
+        "Bridget",
+        "Robo-Ky",
+        "A.B.A",
+        "Order Sol",
+        "Kliff",
+        "Justice",
+    ]
     if replay_folder_path == "":
         _ = messagebox.showerror(
             "Select Folder",
@@ -652,6 +707,42 @@ def analyze_replays(
             )
         except ValueError:
             continue
+    if len(replays) == 0:
+        _ = messagebox.showerror(
+            "No Replays Found",
+            "No replays could be found in the selected folder. Please select a different folder and try again.",
+        )
+        return
+    excluded_characters: list[str] = []
+    if opponent_name == "":
+        replays_p1 = [replay for replay in replays if replay["p1_name"] == name]
+        replays_p2 = [replay for replay in replays if replay["p2_name"] == name]
+        for i in range(len(character_array_copy) - 1, 0, -1):
+            if not any(
+                replay["p1_char"] == character_array_copy[i] for replay in replays_p1
+            ) and not any(
+                replay["p2_char"] == character_array_copy[i] for replay in replays_p2
+            ):
+                excluded_characters.append(character_array_copy.pop(i))
+    else:
+        replays_p1 = [
+            replay
+            for replay in replays
+            if replay["p1_name"] == name and replay["p2_name"] == opponent_name
+        ]
+        replays_p2 = [
+            replay
+            for replay in replays
+            if replay["p1_name"] == opponent_name and replay["p2_name"] == name
+        ]
+        for i in range(len(character_array_copy) - 1, 0, -1):
+            if not any(
+                replay["p1_char"] == character_array_copy[i] for replay in replays_p1
+            ) and not any(
+                replay["p2_char"] == character_array_copy[i] for replay in replays_p2
+            ):
+                excluded_characters.append(character_array_copy.pop(i))
+    excluded_characters.reverse()
     if name == "":
         _ = messagebox.showerror(
             "Enter Username",
@@ -671,10 +762,21 @@ def analyze_replays(
             "Corrupt Replays",
             f"The following replays are corrupt:{corrupt_replays}\nThe non-corrupt replays have successfully been analyzed.",
         )
+    if len(excluded_characters) != 0:
+        if opponent_name == "":
+            _ = messagebox.showinfo(
+                "Excluded Characters",
+                f"No replays with {name} as the following characters could be found:\n{', '.join(character for character in excluded_characters)}\nThe rest of the replays have been successfully analyzed.",
+            )
+        else:
+            _ = messagebox.showinfo(
+                "Excluded Characters",
+                f"No replays with {name} as the following characters against {opponent_name} could be found:\n{', '.join(character for character in excluded_characters)}\nThe rest of the replays have been successfully analyzed.",
+            )
     analysis: Toplevel = Toplevel(root)
     analysis.resizable(False, False)
     character: StringVar = StringVar()
-    character.set("Sol")
+    character.set(character_array_copy[0])
     fig, ax = subplots()
     ax.clear()
     fig.set_figwidth(9)
@@ -762,7 +864,7 @@ def analyze_replays(
         )
     )
     scatter_plot(
-        "Sol",
+        character_array_copy[0],
         filter_replays(
             replays,
             character_array,
@@ -780,7 +882,7 @@ def analyze_replays(
     dropdown: OptionMenu = OptionMenu(
         analysis,
         character,
-        *character_array,
+        *character_array_copy,
         command=lambda x: determine_view(
             x,
             filter_replays(
@@ -924,6 +1026,12 @@ def jsonify_replays(
     Makes JSONs out of replays.
     """
     global corrupt_replays, one_folder_dump_status
+    if replay_folder_path == "":
+        _ = messagebox.showerror(
+            "Select Folder",
+            "Please select a folder.",
+        )
+        return
     slash: str = "\\" if system() == "Windows" else "/"
     if not path.exists(f"JSONs{slash}"):
         mkdir("JSONs")
