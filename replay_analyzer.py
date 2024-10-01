@@ -144,9 +144,7 @@ def hover(
     if event.inaxes == ax:
         cont, ind = sc.contains(event)
         if cont:
-            update_annot(
-                ind, sc, winrates, games, colors, character, data
-            )
+            update_annot(ind, sc, winrates, games, colors, character, data)
             annot.set_visible(True)
             canvas.draw_idle()
         else:
