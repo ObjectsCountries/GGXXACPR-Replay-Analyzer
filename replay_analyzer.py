@@ -34,9 +34,10 @@ try:
     from matplotlib.text import Annotation
     from matplotlib.widgets import RadioButtons, RangeSlider
 except ImportError:
+    mpl_command: str = "py -m pip install matplotlib" if system() == "Windows" else "python3 -m pip install matplotlib"
     _ = messagebox.showerror(
         "Matplotlib Missing",
-        f"Matplotlib, the backend used to render the graphs, is not installed; please install it with the instructions here:\nhttps://matplotlib.org/stable/install/index.html\nAlternatively, run “{'py -m pip install matplotlib' if system() == 'Windows' else 'python3 -m pip install matplotlib'}” from the command line.",
+        f"Matplotlib, the backend used to render the graphs, is not installed; please install it with the instructions here:\nhttps://matplotlib.org/stable/install/index.html\nAlternatively, run “{mpl_command}” from the command line.",
     )
     exit(1)
 
