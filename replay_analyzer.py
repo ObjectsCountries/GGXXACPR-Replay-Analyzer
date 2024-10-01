@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from enum import Enum
 from glob import glob
@@ -36,7 +36,7 @@ try:
 except ImportError:
     _ = messagebox.showerror(
         "Matplotlib Missing",
-        "Matplotlib is not installed, please install it from here: https://matplotlib.org/stable/install/index.html",
+        f"Matplotlib, the backend used to render the graphs, is not installed; please install it with the instructions here:\nhttps://matplotlib.org/stable/install/index.html\nAlternatively, run “{'py -m pip install matplotlib' if system() == 'Windows' else 'python3 -m pip install matplotlib'}” from the command line.",
     )
     exit(1)
 
