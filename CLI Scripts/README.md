@@ -16,7 +16,7 @@ Download the script and place it in a folder, I personally placed it in my repla
 
 Alternatively, you can run it on the command line. You’ll need to navigate the command prompt to the directory you placed the script in, the easiest way to accomplish this is to left click on the file path in file explorer, and type in “cmd”, then click <kbd>Enter</kbd> as shown below.
 
-![](file_explorer.png)
+!["A spliced-together image of three screenshots of the Windows 10 File Explorer. At the top is the friendly path “This PC > Documents > ARC SYSTEM WORKS > GGXXAC > REPLAYS”. In the middle is the real path “C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays”, being edited. At the bottom is the text being replaced with “cmd”."](file_explorer.png "A spliced-together image of three screenshots of the Windows 10 File Explorer. At the top is the friendly path “This PC > Documents > ARC SYSTEM WORKS > GGXXAC > REPLAYS”. In the middle is the real path “C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays”, being edited. At the bottom is the text being replaced with “cmd”.")
 
 This should open a command prompt that looks something like this. From there, you should be able to enter in the script name as displayed below. You can use the <kbd>Tab</kbd> key to autofill in the name.
 
@@ -77,7 +77,7 @@ After using this reformat option, you can run the script with no additional para
 
 Part of what’s nice about this being a Python script is that it’s relatively easy to modify to suit your individual needs if you have the know-how. I figured I’d take a brief rundown of various parts of the script, and general tips for modifying the script.
 
-```py
+```python
 #label:[file_offset,num_type]
 metadata_dictionary = {
 "year":[0x1a,16], "month":[0x1c,8], "day":[0x1d,8], "hour":[0x1e,8], "minute":[0x1f,8], "second":[0x20,8], "p1 steam id":[0x22,64], "p2 steam id":[0x2a,64], 
@@ -97,7 +97,7 @@ The metadata dictionary contains all metadata labels coupled with their file off
 
 I created `PartialParseMetaData()` because I didn’t need all of it, and it saves a bit of time during execution. I’d recommend looking into how it grabs specific labels instead of all of them if you end up wanting to do something similar.
 
-```py
+```python
 replay_files = os.listdir(file_path) #get a list of replay files
 for file in replay_files:
     if 'ggr' in file.lower(): #ensure its a replay file
@@ -141,7 +141,7 @@ Finally, the gigantic `temp_path` line is what actually determines the folder st
 
 #### File Path
 
-```py
+```python
 # Ensure this filepath is correct.
 file_path = 'C:\\Users\\' + os.getlogin() + '\\Documents\\ARC SYSTEM WORKS\\GGXXAC\\Replays'
 ```
