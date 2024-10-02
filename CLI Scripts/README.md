@@ -16,11 +16,11 @@ Download the script and place it in a folder, I personally placed it in my repla
 
 Alternatively, you can run it on the command line. You’ll need to navigate the command prompt to the directory you placed the script in, the easiest way to accomplish this is to left click on the file path in file explorer, and type in “cmd”, then click <kbd>Enter</kbd> as shown below.
 
-!["A spliced-together image of three screenshots of the Windows 10 File Explorer. At the top is the friendly path “This PC > Documents > ARC SYSTEM WORKS > GGXXAC > REPLAYS”. In the middle is the real path “C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays”, being edited. At the bottom is the text being replaced with “cmd”."](file_explorer.png "A spliced-together image of three screenshots of the Windows 10 File Explorer. At the top is the friendly path “This PC > Documents > ARC SYSTEM WORKS > GGXXAC > REPLAYS”. In the middle is the real path “C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays”, being edited. At the bottom is the text being replaced with “cmd”.")
+!["A spliced-together image of three screenshots of the Windows 10 File Explorer. At the top is the friendly path “This PC > Documents > ARC SYSTEM WORKS > GGXXAC > REPLAYS”. In the middle is the real path “C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays”, being edited. At the bottom is the text being replaced with “cmd”."](file_explorer.png)
 
 This should open a command prompt that looks something like this. From there, you should be able to enter in the script name as displayed below. You can use the <kbd>Tab</kbd> key to autofill in the name.
 
-```
+```text
 Microsoft Windows [Version 10.0.19043.1466]
 (c) Microsoft Corporation. All rights reserved.
 
@@ -30,14 +30,14 @@ C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays>OrganizeReplaysMetaData.p
 
 After the script is running for the first time, you should see a dialogue box like this:
 
-```
+```text
 Config file not found, creating config file.
 running first time set up, enter in your steam username:
 ```
 
 It’ll create a “replayOrganizerConfig.ini” file in that same directory. It’s prompting you for your Steam username so it can associate that with your Steam ID, so that it won’t have to prompt you for your username again, and won’t mess up organization if you change it.
 
-```
+```text
 could not find username in replay files.
 please either enter in your SteamID manually here, or ensure you entered your username properly and try again.
 ```
@@ -46,7 +46,7 @@ If this text pops up after entering your username, it wasn’t able to locate a 
 
 Assuming it can find your username, the script should run without issue at this point. It may take a while if you have thousands of replays to sort through, but you should be able to see progress in the replay folder itself. If you run into issues with the script at this point, refer to the ‘known issues’ section at the end of this document, or feel free to contact me directly.
 
-```
+```text
 Config file not found, creating config file.
 running first time set up, enter in your steam username: Joefish
 Organization Complete!
@@ -64,7 +64,7 @@ Now, any new replay files will be placed into a folder with that new nickname. T
 
 I’ve also included an optional parameter for the script that’ll move **all files** within the replay folder directory to the root (replay) folder, and **delete** all subfolders. This can be useful if you change a lot of nicknames and don’t feel like moving those files around manually. Again, just note that the organizer may take a while when moving around thousands of replays.
 
-```
+```text
 C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays>OrganizeReplaysMetaData.py reformat
 
 C:\Users\Joe\Documents\ARC SYSTEM WORKS\GGXXAC\Replays>OrganizeReplaysMetaData.py
