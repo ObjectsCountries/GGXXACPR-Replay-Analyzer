@@ -1109,7 +1109,7 @@ def partial_parse_metadata(
     """
     Parses only the important replay metadata.
     """
-    global ranks
+    global ranks, folder
 
     parsedDict: dict[str, Any] = {
         "p1_name": "",
@@ -1182,7 +1182,8 @@ def parse_metadata(
     """
     Parses the replay metadata into a readable format.
     """
-    global ranks
+    global ranks, folder
+
     parsed_dict: dict[str, Any] = {
         "date": "",
         "player1": {

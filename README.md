@@ -43,9 +43,3 @@ The original CLI Scripts (courtesy of @joefish. and @izyb on Discord) can be fou
 ## Contributing
 
 If you would like to contribute, please feel free to fork this project. Additionally, please message me on Discord (@objectscountries) about bugs, potential new features, etc. Alternatively, open up an issue in this repo for bug reports.
-
-## To Do
-
-- [ ] Integrate with https://acpr.frameone.net/
-  - [ ] Add download feature (ensure duplicates are not downloaded)
-  - [ ] Add upload feature (with feedback telling user how many were already uploaded, failed to upload, etc.)
