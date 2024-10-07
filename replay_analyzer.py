@@ -3,7 +3,7 @@
 from enum import Enum
 from glob import glob
 from io import BufferedReader
-from json import dump
+from json import dump, loads
 from os import getlogin, mkdir, path
 from platform import system
 from tkinter import (
@@ -181,7 +181,7 @@ def update_annot(
     ]
     annot.xy = pos
     text = "{}\n{}:{}\n{} {}".format(
-        f"{', '.join(shared_points) if len(shared_points) > 1 else shared_points[0]}",
+        f"{', '.join(shared_points)}",
         f"{winrates[ind['ind'][0]]:.1f}",
         f"{(10 - winrates[ind['ind'][0]]):.1f}",
         games[ind["ind"][0]],
@@ -715,6 +715,8 @@ def analyze_replays(
         except ValueError as corrupt:
             corrupt_replays.append(str(corrupt))
             continue
+    for file in glob(f"{replay_folder_path}{slash}**{slash}*.json", recursive=True):
+        replays.append(parse_json(file))
     if len(replays) == 0:
         _ = messagebox.showerror(
             "No Replays Found",
@@ -1101,6 +1103,43 @@ def select_folder() -> None:
     )
 
 
+def parse_json(replay_file_path: str) -> dict[str, Any]:
+    """
+    Parses the replay metadata from the generated JSONs.
+    """
+    parsedDict: dict[str, Any] = {
+        "p1_name": "",
+        "p1_char": "",
+        "p1_rank": "",
+        "p2_name": "",
+        "p2_char": "",
+        "p2_rank": "",
+        "winner": 0,
+    }
+    with open(replay_file_path) as f:
+        file_dict: dict[str, Any] = loads(f.read())
+    parsedDict["p1_name"] = file_dict["player1"]["name"]
+    parsedDict["p1_char"] = file_dict["player1"]["character"]
+    parsedDict["p1_rank"] = file_dict["player1"]["rank"]
+    parsedDict["p2_name"] = file_dict["player2"]["name"]
+    parsedDict["p2_char"] = file_dict["player2"]["character"]
+    parsedDict["p2_rank"] = file_dict["player2"]["rank"]
+    match file_dict["winner"]:
+        case "draw":
+            parsedDict["winner"] = 0
+        case "player_1":
+            parsedDict["winner"] = 1
+        case "player_2":
+            parsedDict["winner"] = 2
+        case _:
+            _ = messagebox.showerror(
+                "Error while parsing JSONs",
+                f"There was an issue with parsing the winner field of {replay_file_path}. For this, neither player will be considered the winner.",
+            )
+            parsedDict["winner"] = -1
+    return parsedDict
+
+
 def partial_parse_metadata(
     replay_file_path: str,
     character_array: list[str],
@@ -1118,7 +1157,7 @@ def partial_parse_metadata(
         "p2_name": "",
         "p2_char": "",
         "p2_rank": "",
-        "winner": None,
+        "winner": 0,
     }
     replay: BufferedReader = open(replay_file_path, "rb")
     _ = replay.seek(0, 0)
@@ -1145,7 +1184,7 @@ def partial_parse_metadata(
                     parsedDict["p2_rank"] = ranks[number]
             case "winner side":
                 if number == 3:
-                    parsedDict["winner"] = None
+                    parsedDict["winner"] = 0
                 else:
                     parsedDict["winner"] = number
             case "p1 name":
@@ -1210,7 +1249,7 @@ def parse_metadata(
         "desync": False,
         "ping": 0,
         "duration": 0.0,
-        "winner": None,
+        "winner": "",
     }
     replay: BufferedReader = open(replay_file_path, "rb")
     date: str = ""
@@ -1281,12 +1320,12 @@ def parse_metadata(
                 elif number == 2:
                     parsed_dict["winner"] = "player_2"
                 else:
-                    parsed_dict["winner"] = None
+                    parsed_dict["winner"] = "draw"
             case "p1 steam id":
                 parsed_dict["player1"]["steamID"] = str(number)
             case "p2 steam id":
                 if number == 0:
-                    parsed_dict["player2"]["steamID"] = None
+                    parsed_dict["player2"]["steamID"] = ""
                 else:
                     parsed_dict["player2"]["steamID"] = str(number)
             case "p1 name":
@@ -1298,8 +1337,8 @@ def parse_metadata(
                 finally:
                     parsed_dict["player1"]["name"] = temp.replace("\x00", "", -1)
             case "p2 name":
-                if parsed_dict["player2"]["steamID"] is None:
-                    parsed_dict["player2"]["name"] = None
+                if parsed_dict["player2"]["steamID"] == "":
+                    parsed_dict["player2"]["name"] = ""
                 else:
                     try:
                         temp = replay.read(32).decode()
