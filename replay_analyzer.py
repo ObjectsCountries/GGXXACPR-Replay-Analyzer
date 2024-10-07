@@ -3,7 +3,7 @@
 from enum import Enum
 from glob import glob
 from io import BufferedReader
-from json import dump, loads
+from json import dump, load
 from os import getlogin, mkdir, path
 from platform import system
 from tkinter import (
@@ -34,16 +34,13 @@ try:
     from matplotlib.text import Annotation
     from matplotlib.widgets import RadioButtons, RangeSlider
 except ImportError:
-    mpl_command: str = (
-        "py -m pip install matplotlib"
-        if system() == "Windows"
-        else "python3 -m pip install matplotlib"
-    )
     _ = messagebox.showerror(
         "Matplotlib Missing",
-        f"Matplotlib, the backend used to render the graphs, is not installed; please install it with the instructions here:\nhttps://matplotlib.org/stable/install/index.html\nAlternatively, run “{mpl_command}” from the command line.",
+        "Matplotlib, the backend used to render the graphs, is not installed; please install it with the instructions here:\nhttps://matplotlib.org/stable/install/index.html\nAlternatively, run “python3 -m pip install matplotlib” from the command line.",
     )
     exit(1)
+
+file: str = ""
 
 sliders: list[RangeSlider] = []
 
@@ -81,6 +78,63 @@ ranks: list[str] = [
     "Legend",
 ]
 
+
+metadata_dictionary: dict[str, tuple[int, int]] = {
+    "year": (0x1A, 16),
+    "month": (0x1C, 8),
+    "day": (0x1D, 8),
+    "hour": (0x1E, 8),
+    "minute": (0x1F, 8),
+    "second": (0x20, 8),
+    "p1 steam id": (0x22, 64),
+    "p2 steam id": (0x2A, 64),
+    "p1 name": (0x32, 256),
+    "p2 name": (0x52, 256),
+    "p1 char": (0x72, 8),
+    "p2 char": (0x73, 8),
+    "ex chars?": (0x74, 8),
+    "single or team": (0x75, 8),
+    "+R or AC": (0x76, 8),
+    "recording location timezone bias against GMT": (0x77, 32),
+    "p1 rounds": (0x7B, 8),
+    "p2 rounds": (0x7C, 8),
+    "unfinished match, disconnect, desync bitmask": (0x7D, 8),
+    "ping": (0x7E, 8),
+    "match duration in frames": (0x7F, 32),
+    "p1 score": (0x83, 8),
+    "p2 score": (0x84, 8),
+    "p1 rank": (0x85, 8),
+    "p2 rank": (0x86, 8),
+    "winner side": (0x87, 8),
+}
+
+character_array: list[str] = [
+    "Sol",
+    "Ky",
+    "May",
+    "Millia",
+    "Axl",
+    "Potemkin",
+    "Chipp",
+    "Eddie",
+    "Baiken",
+    "Faust",
+    "Testament",
+    "Jam",
+    "Anji",
+    "Johnny",
+    "Venom",
+    "Dizzy",
+    "Slayer",
+    "I-No",
+    "Zappa",
+    "Bridget",
+    "Robo-Ky",
+    "A.B.A",
+    "Order Sol",
+    "Kliff",
+    "Justice",
+]
 
 colors: dict[str, str] = {
     "Sol": "#b34230",
@@ -323,7 +377,7 @@ def matchups_bar_graph_sorted(
         char_tuple: tuple[str, float, int] = data[character][i]
         if char_tuple[2] != 0:
             pairs[char_tuple[0]] = char_tuple[1]
-            color_pairs[data[character][i][0]] = colors[i]
+            color_pairs[data[character][i][0]] = colors[data[character][i][0]]
     color_list: list[str] = [
         color_pairs[k]
         for k, _ in sorted(pairs.items(), key=lambda item: item[1], reverse=True)
@@ -649,12 +703,8 @@ def filter_replays(
     return data
 
 
-def analyze_replays(
-    replay_folder_path: str,
-    character_array: list[str],
-    metadata_dictionary: dict[str, tuple[int, int]],
-    name: str,
-    opponent_name: str,
+def analyze_master(
+    master_path: str,
     root: Tk,
 ) -> None:
     """
@@ -694,6 +744,143 @@ def analyze_replays(
         "Kliff",
         "Justice",
     ]
+    if master_path == "":
+        _ = messagebox.showerror(
+            "Select Folder",
+            "Please select a folder.",
+            parent=root,
+        )
+        return
+    with open(master_path) as f:
+        data: dict[str, Any] = load(f)
+    excluded_characters: list[str] = []
+    for i in range(len(character_array_copy) - 1, 0, -1):
+        if all(
+            matchup["games"] == 0 for matchup in data["data"][character_array_copy[i]]
+        ):
+            excluded_characters.append(character_array_copy.pop(i))
+    excluded_characters.reverse()
+    if len(excluded_characters) != 0:
+        _ = messagebox.showinfo(
+            "Excluded Characters",
+            f"No replays as the following characters could be found:\n{', '.join(character for character in excluded_characters)}\nThe rest of the replays have been successfully analyzed.",
+            parent=root,
+        )
+    analysis: Toplevel = Toplevel(root)
+    analysis.resizable(False, False)
+    character: StringVar = StringVar()
+    character.set(character_array_copy[0])
+    fig, ax = subplots()
+    ax.clear()
+    fig.set_figwidth(9)
+    fig.set_figheight(9)
+    _ = ax.set_xlim(0.0, 10.0)
+    _ = ax.set_label(f"Matchup Spread for {character}")
+    _ = ax.set_xlabel("Win Rate", fontsize=18)
+    _ = ax.set_ylabel("Number of Matches", fontsize=18)
+    canvas: FigureCanvasTkAgg = FigureCanvasTkAgg(fig, master=analysis)
+    canvas.get_tk_widget().grid(row=1, column=0, columnspan=3)
+    replays: dict[str, list[tuple[str, float, int]]] = {}
+    for char, matchups in data["data"].items():
+        replays[char] = [
+            (matchup["opponent"], matchup["winrate"], matchup["games"])
+            for matchup in matchups
+        ]
+    scatter_plot(
+        character_array_copy[0],
+        replays,
+        ax,
+        canvas,
+    )
+    dropdown: OptionMenu = OptionMenu(
+        analysis,
+        character,
+        *character_array_copy,
+        command=lambda x: determine_view(
+            x,
+            replays,
+            ax,
+            canvas,
+            False,
+            False,
+        ),
+    )
+    dropdown.grid(row=0, column=0)
+    switch_button: Button = Button(
+        analysis,
+        text="Switch View",
+        command=lambda: determine_view(
+            character.get(),
+            replays,
+            ax,
+            canvas,
+            True,
+            False,
+        ),
+    )
+    switch_button.grid(row=0, column=1)
+    sort_button = Button(
+        analysis,
+        text="Toggle Sorting",
+        command=lambda: determine_view(
+            character.get(),
+            replays,
+            ax,
+            canvas,
+            False,
+            True,
+        ),
+    )
+    sort_button.grid(row=0, column=2)
+    sort_button["state"] = DISABLED
+    analysis.protocol("WM_DELETE_WINDOW", analysis.destroy)
+
+
+def analyze_replays(
+    replay_folder_path: str,
+    name: str,
+    opponent_name: str,
+    root: Tk,
+) -> None:
+    """
+    Opens a new window to graph replays.
+    """
+    global \
+        view_type, \
+        is_sorted, \
+        sliders, \
+        replay_type_selection, \
+        sort_button, \
+        corrupt_replays, \
+        character_array, \
+        metadata_dictionary
+    character_array_copy: list[str] = [
+        "Sol",
+        "Ky",
+        "May",
+        "Millia",
+        "Axl",
+        "Potemkin",
+        "Chipp",
+        "Eddie",
+        "Baiken",
+        "Faust",
+        "Testament",
+        "Jam",
+        "Anji",
+        "Johnny",
+        "Venom",
+        "Dizzy",
+        "Slayer",
+        "I-No",
+        "Zappa",
+        "Bridget",
+        "Robo-Ky",
+        "A.B.A",
+        "Order Sol",
+        "Kliff",
+        "Justice",
+    ]
     if replay_folder_path == "":
         _ = messagebox.showerror(
             "Select Folder",
@@ -705,18 +892,13 @@ def analyze_replays(
     slash: str = "\\" if system() == "Windows" else "/"
     for file in glob(f"{replay_folder_path}{slash}**{slash}*.ggr", recursive=True):
         try:
-            replays.append(
-                partial_parse_metadata(
-                    file,
-                    character_array,
-                    metadata_dictionary,
-                )
-            )
+            replays.append(partial_parse_metadata(file))
         except ValueError as corrupt:
             corrupt_replays.append(str(corrupt))
             continue
     for file in glob(f"{replay_folder_path}{slash}**{slash}*.json", recursive=True):
-        replays.append(parse_json(file))
+        if not file.endswith("master.json"):
+            replays.append(parse_jsons(file))
     if len(replays) == 0:
         _ = messagebox.showerror(
             "No Replays Found",
@@ -1035,14 +1217,13 @@ def determine_view(
 
 def jsonify_replays(
     replay_folder_path: str,
-    character_array: list[str],
-    metadata_dictionary: dict[str, tuple[int, int]],
     root: Tk,
+    name: str,
 ) -> None:
     """
     Makes JSONs out of replays.
     """
-    global corrupt_replays, one_folder_dump_status
+    global corrupt_replays, one_folder_dump_status, character_array, metadata_dictionary
     if replay_folder_path == "":
         _ = messagebox.showerror(
             "Select Folder",
@@ -1053,17 +1234,15 @@ def jsonify_replays(
     slash: str = "\\" if system() == "Windows" else "/"
     if not path.exists(f"JSONs{slash}"):
         mkdir("JSONs")
+    all_replays: list[dict[str, Any]] = []
     for file in glob(f"{replay_folder_path}{slash}**{slash}*.ggr", recursive=True):
         try:
-            data = parse_metadata(
-                file,
-                character_array,
-                metadata_dictionary,
-            )
+            data = parse_metadata(file)
         except ValueError as corrupt:
             corrupt_replays.append(str(corrupt))
             continue
         else:
+            all_replays.append(data)
             subdirectory: str = file[len(replay_folder_path) + 1 : file.rfind(slash)]
             if one_folder_dump_status.get() == 0:
                 if not path.exists("JSONs" + slash + subdirectory + slash):
@@ -1075,14 +1254,14 @@ def jsonify_replays(
                 ) as f:
                     dump(data, f, ensure_ascii=False, indent=4)
             else:
-                if not path.exists("JSONs" + slash):
-                    mkdir("JSONs")
                 with open(
                     f"JSONs{slash}{file[len(replay_folder_path) + len(subdirectory) + 1:-4]}.json",
                     "w",
                     encoding="utf-8",
                 ) as f:
                     dump(data, f, ensure_ascii=False, indent=4)
+    with open("master.json", "w") as f:
+        dump(master_json(all_replays, name), f, ensure_ascii=False, indent=4)
     if len(corrupt_replays) != 0:
         _ = messagebox.showwarning(
             "Corrupt Replays",
@@ -1103,7 +1282,107 @@ def select_folder() -> None:
     )
 
 
-def parse_json(replay_file_path: str) -> dict[str, Any]:
+def select_master_file(root: Tk) -> None:
+    """
+    Selects the master.json file.
+    """
+    global file
+    file = filedialog.askopenfilename(
+        title="Please select the master.json file.",
+        filetypes=[("master.json", "*.json")],
+    )
+    if file != "" and file != ():
+        try:
+            analyze_master(file, root)
+        except KeyError as e:
+            _ = messagebox.showerror(
+                f"Error parsing {file}",
+                f"There was an issue parsing {file}: {e}\nPlease try and generate it again, or select a different file.",
+            )
+
+
+def master_json(all_replays: list[dict[str, Any]], username: str) -> dict[str, Any]:
+    """
+    Parses data for a master JSON.
+    """
+    character_array: list[str] = [
+        "Sol",
+        "Ky",
+        "May",
+        "Millia",
+        "Axl",
+        "Potemkin",
+        "Chipp",
+        "Eddie",
+        "Baiken",
+        "Faust",
+        "Testament",
+        "Jam",
+        "Anji",
+        "Johnny",
+        "Venom",
+        "Dizzy",
+        "Slayer",
+        "I-No",
+        "Zappa",
+        "Bridget",
+        "Robo-Ky",
+        "A.B.A",
+        "Order Sol",
+        "Kliff",
+        "Justice",
+    ]
+    master: dict[str, Any] = {}
+    master["user"] = username
+    master["totalReplays"] = len(all_replays)
+    master["data"] = {}
+    for user_char in character_array:
+        master["data"][user_char] = []
+        for opponent_char in character_array:
+            matchup_replays_p1 = [
+                replay
+                for replay in all_replays
+                if replay["player1"]["name"] == username
+                and replay["player1"]["character"] == user_char
+                and replay["player2"]["character"] == opponent_char
+            ]
+            matchup_replays_p2 = [
+                replay
+                for replay in all_replays
+                if replay["player2"]["name"] == username
+                and replay["player1"]["character"] == opponent_char
+                and replay["player2"]["character"] == user_char
+            ]
+            matchup_replays_won = [
+                replay for replay in matchup_replays_p1 if replay["winner"] == "player1"
+            ]
+            matchup_replays_won.extend(
+                [
+                    replay
+                    for replay in matchup_replays_p2
+                    if replay["winner"] == "player2"
+                ]
+            )
+            master["data"][user_char].append(
+                {
+                    "opponent": opponent_char,
+                    "winrate": 0.0
+                    if (len(matchup_replays_p1) + len(matchup_replays_p2)) == 0
+                    else round(
+                        10
+                        * (
+                            len(matchup_replays_won)
+                            / (len(matchup_replays_p1) + len(matchup_replays_p2))
+                        ),
+                        1,
+                    ),
+                    "games": len(matchup_replays_p1) + len(matchup_replays_p2),
+                }
+            )
+    return master
+
+
+def parse_jsons(replay_file_path: str) -> dict[str, Any]:
     """
     Parses the replay metadata from the generated JSONs.
     """
@@ -1117,7 +1396,7 @@ def parse_json(replay_file_path: str) -> dict[str, Any]:
         "winner": 0,
     }
     with open(replay_file_path) as f:
-        file_dict: dict[str, Any] = loads(f.read())
+        file_dict: dict[str, Any] = load(f)
     parsedDict["p1_name"] = file_dict["player1"]["name"]
     parsedDict["p1_char"] = file_dict["player1"]["character"]
     parsedDict["p1_rank"] = file_dict["player1"]["rank"]
@@ -1127,9 +1406,9 @@ def parse_json(replay_file_path: str) -> dict[str, Any]:
     match file_dict["winner"]:
         case "draw":
             parsedDict["winner"] = 0
-        case "player_1":
+        case "player1":
             parsedDict["winner"] = 1
-        case "player_2":
+        case "player2":
             parsedDict["winner"] = 2
         case _:
             _ = messagebox.showerror(
@@ -1142,13 +1421,11 @@ def parse_json(replay_file_path: str) -> dict[str, Any]:
 
 def partial_parse_metadata(
     replay_file_path: str,
-    character_array: list[str],
-    metadata_dictionary: dict[str, tuple[int, int]],
 ) -> dict[str, Any]:
     """
     Parses only the important replay metadata.
     """
-    global ranks, folder
+    global ranks, folder, character_array, metadata_dictionary
 
     parsedDict: dict[str, Any] = {
         "p1_name": "",
@@ -1215,13 +1492,11 @@ def partial_parse_metadata(
 
 def parse_metadata(
     replay_file_path: str,
-    character_array: list[str],
-    metadata_dictionary: dict[str, tuple[int, int]],
 ) -> dict[str, Any]:
     """
     Parses the replay metadata into a readable format.
     """
-    global ranks, folder
+    global ranks, folder, character_array, metadata_dictionary
 
     parsed_dict: dict[str, Any] = {
         "date": "",
@@ -1316,9 +1591,9 @@ def parse_metadata(
                 parsed_dict["player2"]["score"] = number
             case "winner side":
                 if number == 1:
-                    parsed_dict["winner"] = "player_1"
+                    parsed_dict["winner"] = "player1"
                 elif number == 2:
-                    parsed_dict["winner"] = "player_2"
+                    parsed_dict["winner"] = "player2"
                 else:
                     parsed_dict["winner"] = "draw"
             case "p1 steam id":
@@ -1365,63 +1640,14 @@ def main() -> None:
     """
     Main functionality.
     """
-    global folder, sliders, one_folder_dump_status, opponent
-    metadata_dictionary: dict[str, tuple[int, int]] = {
-        "year": (0x1A, 16),
-        "month": (0x1C, 8),
-        "day": (0x1D, 8),
-        "hour": (0x1E, 8),
-        "minute": (0x1F, 8),
-        "second": (0x20, 8),
-        "p1 steam id": (0x22, 64),
-        "p2 steam id": (0x2A, 64),
-        "p1 name": (0x32, 256),
-        "p2 name": (0x52, 256),
-        "p1 char": (0x72, 8),
-        "p2 char": (0x73, 8),
-        "ex chars?": (0x74, 8),
-        "single or team": (0x75, 8),
-        "+R or AC": (0x76, 8),
-        "recording location timezone bias against GMT": (0x77, 32),
-        "p1 rounds": (0x7B, 8),
-        "p2 rounds": (0x7C, 8),
-        "unfinished match, disconnect, desync bitmask": (0x7D, 8),
-        "ping": (0x7E, 8),
-        "match duration in frames": (0x7F, 32),
-        "p1 score": (0x83, 8),
-        "p2 score": (0x84, 8),
-        "p1 rank": (0x85, 8),
-        "p2 rank": (0x86, 8),
-        "winner side": (0x87, 8),
-    }
-
-    character_array: list[str] = [
-        "Sol",
-        "Ky",
-        "May",
-        "Millia",
-        "Axl",
-        "Potemkin",
-        "Chipp",
-        "Eddie",
-        "Baiken",
-        "Faust",
-        "Testament",
-        "Jam",
-        "Anji",
-        "Johnny",
-        "Venom",
-        "Dizzy",
-        "Slayer",
-        "I-No",
-        "Zappa",
-        "Bridget",
-        "Robo-Ky",
-        "A.B.A",
-        "Order Sol",
-        "Kliff",
-        "Justice",
-    ]
+    global \
+        folder, \
+        sliders, \
+        one_folder_dump_status, \
+        opponent, \
+        file, \
+        metadata_dictionary, \
+        character_array
     root: Tk = Tk()
     root.title("GGXXACPR Replay Analyzer")
     root.resizable(False, False)
@@ -1453,24 +1679,21 @@ def main() -> None:
     jsonify_button: Button = Button(
         button_frame,
         text="JSON-ify Replays",
-        command=lambda: jsonify_replays(
-            folder, character_array, metadata_dictionary, root
-        ),
+        command=lambda: jsonify_replays(folder, root, username.get()),
     )
-    jsonify_button.grid(row=0, column=0, padx=(0, 40), pady=(0, 10))
+    jsonify_button.grid(row=0, column=0, padx=(20, 20), pady=(0, 10))
     analyze_button: Button = Button(
         button_frame,
         text="Analyze Replays",
-        command=lambda: analyze_replays(
-            folder,
-            character_array,
-            metadata_dictionary,
-            username.get(),
-            opponent.get(),
-            root,
-        ),
+        command=lambda: analyze_replays(folder, username.get(), opponent.get(), root),
     )
-    analyze_button.grid(row=0, column=1, padx=(40, 0), pady=(0, 10))
+    analyze_button.grid(row=0, column=1, padx=(20, 20), pady=(0, 10))
+    analyze_master_button: Button = Button(
+        button_frame,
+        text="Analyze master.json",
+        command=lambda: select_master_file(root),
+    )
+    analyze_master_button.grid(row=0, column=2, padx=(20, 20), pady=(0, 10))
     root.protocol("WM_DELETE_WINDOW", exit)
     root.mainloop()
 

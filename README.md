@@ -10,6 +10,8 @@ Python is needed to run the script, install here: https://www.python.org/downloa
 
 Matplotlib is needed to render the graphs, install here: https://matplotlib.org/stable/install/index.html
 
+Alternatively, assuming Python has been installed, run `python3 -m pip install matplotlib` from the command line.
+
 The only file that has to be downloaded from this repo is [replay_analyzer.py](replay_analyzer.py). This script does not have to be in the same folder as the replays.
 
 ### Setup
@@ -22,7 +24,11 @@ If a file does not have the proper heading for a +R replay, it will be marked as
 
 ### JSONs
 
-The “JSON-ify Replays” button will make a JSON out of every file in the replay folder, outputting to a new folder called “JSONs” located where the script is. When making the JSONs, there is a checkbox that determines whether the program preserves folder structure, or dumps everything into one folder. **Note that you do not need to make the JSONs before viewing the graphs.**
+The “JSON-ify Replays” button will make a JSON out of every file in the replay folder, outputting to a new folder called “JSONs” located where the script is. When making the JSONs, there is a checkbox that determines whether the program preserves folder structure, or dumps everything into one folder. **Note that you do not need to make the JSONs before viewing the graphs.** However, these JSONs can be analyzed in the same way as the replays.
+
+#### Master JSON
+
+The master.json file is intended to be used as a portable way to share graphs. However, it comes with the limitation that only online replays are counted, and that replays cannot be filtered by rank. If generated JSONs are considered for analysis and master.json is included in the folder that contains the generated JSONs, the generated JSONs take priority over master.json. **Note that the master file does not have to be named master.json.**
 
 ### Replay Analysis
 
