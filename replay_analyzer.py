@@ -614,6 +614,8 @@ def analyze_replays(
     else:
         with open(replay_path) as f:
             replays = load(f)["data"]
+    if opponent_name != "":
+        replays = [replay for replay in replays if replay["opponentName"] == opponent_name]
     excluded_characters: list[str] = []
     for i in range(len(character_array_copy) - 1, 0, -1):
         if not any(
@@ -716,7 +718,7 @@ def analyze_replays(
             replays,
             character_array,
             name,
-            opponent,
+            opponent_name,
             character.get(),
             ax,
             canvas,
