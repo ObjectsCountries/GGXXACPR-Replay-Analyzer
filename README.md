@@ -16,7 +16,7 @@ The only file that has to be downloaded from this repo is [replay_analyzer.py](r
 
 ### Setup
 
-Simply enter your username, select the folder with the replays (the app should go to the correct one by default), and click either of the buttons at the bottom. Optionally, enter a second player’s name to filter for replays only between you and them.
+Simply enter your username, select the folder with the replays (the app should go to the correct one by default), and click either the left or center button at the bottom. Optionally, enter a second player’s name to filter for replays only between you and them.
 
 Selecting a folder is not necessary unless your replays are not in the default folder (On Windows: C:\Users\\(your username)\Documents\ARC SYSTEM WORKS\GGXXAC\Replays\\), but opening the folder selector and closing it without selecting anything will yield an empty path as the selected folder, and the program will prompt the user to select a folder.
 
@@ -28,7 +28,7 @@ The “JSON-ify Replays” button will make a JSON out of every file in the repl
 
 #### Master JSON
 
-The master.json file is intended to be used as a portable way to share graphs. However, it comes with the limitation that only online replays are counted, and that replays cannot be filtered by rank. If generated JSONs are considered for analysis and master.json is included in the folder that contains the generated JSONs, the generated JSONs take priority over master.json. **Note that the master file does not have to be named master.json.**
+The master.json file is intended to be used as a portable way to share graphs. If generated JSONs are considered for analysis and master.json is included in the folder that contains the generated JSONs, the generated JSONs take priority over master.json.
 
 ### Replay Analysis
 
@@ -40,7 +40,7 @@ The “Switch View” button will switch between the scatter plot of matchup win
 
 The “Toggle Sorting” button will switch between sorting the bar graphs by character and by amount (highest to lowest), with the average always at the bottom.
 
-The two sliders show the range of online ranks for you (first slider) and your opponent (second slider). The radio buttons at the bottom filter between offline replays, online replays, and both.
+The two sliders show the range of online ranks for you (first slider) and your opponent (second slider). The radio buttons at the bottom filter between offline replays, online replays, and both. Note that for offline replays, the user is considered to be player 1.
 
 ## CLI Scripts
 
